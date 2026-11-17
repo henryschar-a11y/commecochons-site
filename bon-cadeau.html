@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bon cadeau | ...Comme cochons</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="/img/favicon-64.png">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .outils{max-width:900px;margin:0 auto;padding:20px 22px;text-align:center}
+  .outils input{padding:12px 16px;border-radius:999px;border:2px solid var(--creme-2);font-family:inherit;font-size:1rem;margin:6px;min-width:220px}
+  .bon{width:900px;max-width:calc(100% - 32px);margin:10px auto 60px;aspect-ratio:297/210;background:var(--creme);
+       border:10px solid var(--rose);border-radius:28px;display:grid;grid-template-columns:42% 1fr;overflow:hidden;
+       box-shadow:0 18px 40px rgba(99,67,67,.18)}
+  .bon .visuel{background:var(--creme-2);display:grid;place-items:center;padding:24px}
+  .bon .visuel img{border-radius:20px;width:100%}
+  .bon .texte{padding:34px 38px;display:flex;flex-direction:column;justify-content:center}
+  .bon .sur-titre{font-family:"Fredoka",sans-serif;color:var(--boue);font-size:1.1rem;letter-spacing:.08em;text-transform:uppercase}
+  .bon h1{font-size:2.6rem;color:var(--rose);margin:.1em 0 .3em}
+  .ligne{font-size:1.15rem;margin:8px 0;border-bottom:2px dashed var(--sable);padding-bottom:6px}
+  .ligne b{font-family:"Fredoka",sans-serif;color:var(--boue);margin-right:8px}
+  .bon .info{margin-top:18px;font-size:.98rem;color:var(--texte-doux)}
+  .bon .info strong{color:var(--texte)}
+  @media print{
+    @page{size:A4 landscape;margin:10mm}
+    body{background:#fff}
+    .outils,nav{display:none!important}
+    .bon{width:100%;max-width:none;margin:0;box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .bon .visuel{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+  @media(max-width:700px){.bon{grid-template-columns:1fr;aspect-ratio:auto}.bon h1{font-size:2rem}}
+</style>
+</head>
+<body>
+<div class="wrap"><nav><a class="logo" href="/">...Comme cochons</a></nav></div>
+
+<div class="outils">
+  <p>Personnalisez votre bon cadeau, puis imprimez-le (ou enregistrez-le en PDF).</p>
+  <input id="pour" placeholder="Pour (prénom)" maxlength="40">
+  <input id="de" placeholder="De la part de" maxlength="40">
+  <select id="version" style="padding:12px 16px;border-radius:999px;border:2px solid var(--creme-2);font-family:inherit;font-size:1rem;margin:6px">
+    <option value="Pratique">Version Pratique</option>
+  </select>
+  <p style="margin-top:14px"><button class="btn" onclick="window.print()">🖨 Imprimer / PDF</button></p>
+</div>
+
+<div class="bon">
+  <div class="visuel"><img src="img/couverture.png" alt="Couverture du jeu ...Comme cochons"></div>
+  <div class="texte">
+    <div class="sur-titre">Bon cadeau</div>
+    <h1>...Comme cochons</h1>
+    <div class="ligne"><b>Pour :</b><span id="v-pour">&nbsp;</span></div>
+    <div class="ligne"><b>De la part de :</b><span id="v-de">&nbsp;</span></div>
+    <p class="info">Ce bon vaut pour <strong>une boîte du jeu ...Comme cochons, version <span id="v-version">Pratique</span></strong>.<br>
+    Le jeu qui révèle si tes proches te connaissent vraiment.<br>
+    Ta boîte arrive par la poste, <strong>expédiée avant le 15 février 2027</strong>.</p>
+    <p class="info" style="margin-top:6px">commecochons.com</p>
+  </div>
+</div>
+
+<script>
+  const lier = (id, cible) => document.getElementById(id).addEventListener("input", e => {
+    document.getElementById(cible).textContent = e.target.value || " ";
+  });
+  lier("pour", "v-pour"); lier("de", "v-de");
+  document.getElementById("version").addEventListener("change", e => {
+    document.getElementById("v-version").textContent = e.target.value;
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boîte 3D | ...Comme cochons</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --brun:#5B3A37; --magenta:#BE6B9C; --rose:#F2DDE6; --creme:#F5F1E6; }
+  html,body { margin:0; height:100%; background:var(--creme); font-family:"Nunito",system-ui,sans-serif; color:var(--brun); overflow:hidden; }
+  #scene { position:absolute; inset:0; cursor:grab; }
+  #scene:active { cursor:grabbing; }
+  .barre { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); display:flex; gap:6px; flex-wrap:wrap; justify-content:center;
+           background:rgba(255,253,248,.95); border-radius:999px; padding:6px; box-shadow:0 6px 20px rgba(91,58,55,.12); }
+  .sep { width:1px; background:#e3d5ba; margin:4px 2px; }
+  button { border:0; border-radius:999px; padding:8px 14px; font:700 14px/1 inherit; font-family:inherit; cursor:pointer; background:transparent; color:var(--brun); }
+  button.actif { background:var(--magenta); color:#fff; }
+  .aide { position:absolute; top:10px; left:0; right:0; text-align:center; font-size:13px; opacity:.7; pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div class="aide">Fais glisser pour tourner la boîte</div>
+<div class="barre">
+  <button data-version="pratique">Pratique</button>
+  <button data-version="premium" class="actif">Premium</button>
+  <span class="sep"></span>
+  <button data-vue="ouverte" class="actif">Ouverte</button>
+  <button data-vue="fermee">Fermée</button>
+  <button data-vue="dessous">Dessous</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const TEX = {"carte_dos": "img/3d/carte_dos.jpg", "notice": "img/3d/notice.jpg", "couv_dessus": "img/3d/couv_dessus.jpg", "couv_avant": "img/3d/couv_avant.jpg", "couv_arriere": "img/3d/couv_arriere.jpg", "couv_droite": "img/3d/couv_droite.jpg", "couv_gauche": "img/3d/couv_gauche.jpg", "fond_dessous": "img/3d/fond_dessous.jpg", "fond_avant": "img/3d/fond_avant.jpg", "fond_arriere": "img/3d/fond_arriere.jpg", "fond_gauche": "img/3d/fond_gauche.jpg", "fond_droite": "img/3d/fond_droite.jpg"};
+const e = 1.5;                                   // épaisseur du carton
+const FORMATS = {
+  '130': { iw:130, ih:50, couvH:41.5, rentreF:17.5, rentreC:17.5, suf:'' },
+  '139': { iw:139, ih:33, couvH:15,   rentreF:17.5, rentreC:15,   suf:'_139' },
+};
+const etat = { version:'premium', format:'139', notice:false, deck:22, sabL:90, sabD:25, feu:13, vue:'ouverte' };
+
+// ---------- moteur
+const conteneur = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true;
+conteneur.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xF5F1E6);
+const camera = new THREE.PerspectiveCamera(35, 1, 1, 3000);
+camera.position.set(120, 420, 360);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.target.set(0, 20, -45);
+controls.minDistance = 160; controls.maxDistance = 600; controls.enableZoom = false; controls.autoRotate = true; controls.autoRotateSpeed = 1.2;
+renderer.domElement.addEventListener('pointerdown', () => controls.autoRotate = false);
+renderer.domElement.style.touchAction = 'pan-y'; // laisse défiler la page au doigt, le glissé horizontal fait tourner la boîte
+scene.add(new THREE.HemisphereLight(0xffffff, 0xd8cfc0, 0.75));
+const soleil = new THREE.DirectionalLight(0xffffff, 0.55);
+soleil.position.set(150, 320, 220); soleil.castShadow = true; soleil.shadow.mapSize.set(2048, 2048);
+Object.assign(soleil.shadow.camera, { left:-260, right:260, top:260, bottom:-260, near:10, far:900 });
+scene.add(soleil);
+const sol = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.ShadowMaterial({ opacity:0.18 }));
+sol.rotation.x = -Math.PI / 2; sol.receiveShadow = true; scene.add(sol);
+
+const chargeur = new THREE.TextureLoader();
+function tex(nom, recadreY = 1) {           // recadreY < 1 : on ne garde que la bande centrale
+  const t = chargeur.load(TEX[nom]);
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  if (recadreY < 1) { t.repeat.set(1, recadreY); t.offset.set(0, (1 - recadreY) / 2); }
+  return t;
+}
+const mat = (o) => new THREE.MeshStandardMaterial(Object.assign({ roughness:0.85, metalness:0 }, o));
+const uni = (c, o = {}) => mat(Object.assign({ color:c }, o));
+function maille(geo, mats, x, y, z) {
+  const m = new THREE.Mesh(geo, mats); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m;
+}
+function interieur(l, h, couleur, enHaut, rentre) {
+  const k = 4, cv = document.createElement('canvas');
+  cv.width = Math.round(l * k); cv.height = Math.round(h * k);
+  const g = cv.getContext('2d');
+  g.fillStyle = '#f2efea'; g.fillRect(0, 0, cv.width, cv.height);
+  g.fillStyle = couleur; const b = Math.min(rentre, h) * k;
+  enHaut ? g.fillRect(0, 0, cv.width, b) : g.fillRect(0, cv.height - b, cv.width, b);
+  const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; return mat({ map:t });
+}
+
+// ---------- boîte
+const objet = new THREE.Group(); scene.add(objet);
+let fond, couvercle, contenu;
+
+function construireBoite() {
+  if (fond) objet.remove(fond); if (couvercle) objet.remove(couvercle);
+  const F = FORMATS[etat.format];
+  const W = F.iw + 2 * e, H = F.ih + e;
+  const s = '';
+  fond = new THREE.Group();
+  const bord = uni(0xF3EEDF), intF = interieur(W, H, '#F3EEDF', true, F.rentreF);
+  fond.add(maille(new THREE.BoxGeometry(W, e, W), [bord, bord, uni(0xF2EFEA), mat({ map:tex('fond_dessous' + s) }), bord, bord], 0, e / 2, 0));
+  fond.add(maille(new THREE.BoxGeometry(W, H, e), [bord, bord, bord, bord, mat({ map:tex('fond_avant' + s) }), intF], 0, H / 2, W / 2 - e / 2));
+  fond.add(maille(new THREE.BoxGeometry(W, H, e), [bord, bord, bord, bord, intF, mat({ map:tex('fond_arriere' + s) })], 0, H / 2, -W / 2 + e / 2));
+  fond.add(maille(new THREE.BoxGeometry(e, H, W - 2 * e), [intF, mat({ map:tex('fond_gauche' + s) }), bord, bord, bord, bord], -W / 2 + e / 2, H / 2, 0));
+  fond.add(maille(new THREE.BoxGeometry(e, H, W - 2 * e), [mat({ map:tex('fond_droite' + s) }), intF, bord, bord, bord, bord], W / 2 - e / 2, H / 2, 0));
+
+  const LW = W + 1 + 2 * e, LH = F.couvH;
+  couvercle = new THREE.Group();
+  const bordC = uni(0xB3659A), intC = interieur(LW, LH, '#B3659A', false, F.rentreC);
+  couvercle.add(maille(new THREE.BoxGeometry(LW, e, LW), [bordC, bordC, mat({ map:tex('couv_dessus' + s) }), uni(0xF2EFEA), bordC, bordC], 0, LH - e / 2, 0));
+  couvercle.add(maille(new THREE.BoxGeometry(LW, LH, e), [bordC, bordC, bordC, bordC, mat({ map:tex('couv_avant' + s) }), intC], 0, LH / 2, LW / 2 - e / 2));
+  couvercle.add(maille(new THREE.BoxGeometry(LW, LH, e), [bordC, bordC, bordC, bordC, intC, mat({ map:tex('couv_arriere' + s) })], 0, LH / 2, -LW / 2 + e / 2));
+  couvercle.add(maille(new THREE.BoxGeometry(e, LH, LW - 2 * e), [intC, mat({ map:tex('couv_gauche' + s) }), bordC, bordC, bordC, bordC], -LW / 2 + e / 2, LH / 2, 0));
+  couvercle.add(maille(new THREE.BoxGeometry(e, LH, LW - 2 * e), [mat({ map:tex('couv_droite' + s) }), intC, bordC, bordC, bordC, bordC], LW / 2 - e / 2, LH / 2, 0));
+  couvercle.userData.yFerme = H + e - LH;
+  objet.add(fond); objet.add(couvercle);
+}
+
+// ---------- contenu
+function tranchesCartes() {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+  const g = cv.getContext('2d'); g.fillStyle = '#f7f3ea'; g.fillRect(0, 0, 256, 64);
+  g.strokeStyle = 'rgba(150,120,110,.35)'; g.lineWidth = 1;
+  for (let y = 2; y < 64; y += 2.1) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke(); }
+  const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; return mat({ map:t });
+}
+function sablier(L, D) {
+  const g = new THREE.Group(), r = D / 2, cap = Math.max(3, L * 0.06);
+  const bois = uni(0xb9875a, { roughness:0.6 });
+  [-1, 1].forEach(s => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, cap, 32), bois); c.position.y = s * (L / 2 - cap / 2); c.castShadow = true; g.add(c); });
+  for (let i = 0; i < 3; i++) {
+    const a = i * 2 * Math.PI / 3, b = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.08, r * 0.08, L - 2 * cap, 8), bois);
+    b.position.set(Math.cos(a) * r * 0.82, 0, Math.sin(a) * r * 0.82); g.add(b);
+  }
+  const h = (L - 2 * cap) / 2, pts = [];
+  for (let i = 0; i <= 20; i++) { const t = i / 20; pts.push(new THREE.Vector2(r * 0.7 * (0.12 + 0.88 * Math.sin(Math.PI * t / 2)), t * h)); }
+  const verre = new THREE.MeshPhysicalMaterial({ color:0xffffff, transparent:true, opacity:0.28, roughness:0.05, metalness:0 });
+  [1, -1].forEach(s => { const m = new THREE.Mesh(new THREE.LatheGeometry(pts, 32), verre); m.scale.y = s; g.add(m); });
+  const sable = new THREE.Mesh(new THREE.ConeGeometry(r * 0.55, h * 0.55, 24), uni(0xd9b57a));
+  sable.position.y = -h + h * 0.28; g.add(sable);
+  return g;
+}
+function feutre(L, D, couleur) {
+  const g = new THREE.Group();
+  const corps = new THREE.Mesh(new THREE.CylinderGeometry(D / 2, D / 2, L * 0.72, 24), uni(0xd9d9de, { roughness:0.45 }));
+  corps.position.y = -L * 0.14; g.add(corps);
+  const bouchon = new THREE.Mesh(new THREE.CylinderGeometry(D / 2 * 1.05, D / 2 * 1.05, L * 0.28, 24), uni(couleur, { roughness:0.5 }));
+  bouchon.position.y = L * 0.36; g.add(bouchon);
+  g.children.forEach(c => c.castShadow = true);
+  return g;
+}
+
+function construireContenu() {
+  if (contenu) fond.remove(contenu);
+  contenu = new THREE.Group();
+  const F = FORMATS[etat.format], iw = F.iw, prem = etat.version === 'premium';
+  const x0 = -iw / 2 + 1, z0 = -iw / 2 + 1, sq = prem ? 100 : 93;
+  let base = e;
+  if (prem) {                                       // 4 ardoises blanches (dos aimanté noir)
+    for (let i = 0; i < 4; i++) {
+      const s = maille(new THREE.BoxGeometry(100, 1, 100), [uni(0x222222), uni(0x222222), uni(0xfbfbfb, { roughness:0.25 }), uni(0x222222), uni(0x222222), uni(0x222222)],
+                       x0 + 50, base + 0.5, z0 + 50);
+      contenu.add(s); base += 1;
+    }
+  }
+  const dos = mat({ map:tex('carte_dos') }), tr = tranchesCartes();
+  const paquet = maille(new THREE.BoxGeometry(93, etat.deck, 93), [tr, tr, dos, uni(0xf7f3ea), tr, tr], x0 + sq / 2, base + etat.deck / 2, z0 + sq / 2);
+  contenu.add(paquet);
+  const hCartes = base - e + etat.deck;
+
+  // sablier couché dans la bande de droite, axe le long de z
+  const bandeX = iw - sq - 2, sab = sablier(etat.sabL, etat.sabD);
+  sab.rotation.x = Math.PI / 2;
+  sab.position.set(x0 + sq + 1 + bandeX / 2, e + etat.sabD / 2, z0 + etat.sabL / 2 + 2);
+  contenu.add(sab);
+
+  let hFeutres = 0;
+  if (prem) {                                       // 4 feutres, 2 x 2, dans la bande avant
+    const D = etat.feu, L = 115, cols = [0x222222, 0x1f5fbf, 0xc62828, 0x2e7d32];
+    for (let i = 0; i < 4; i++) {
+      const f = feutre(L, D, cols[i]); f.rotation.z = Math.PI / 2;
+      f.position.set(x0 + L / 2 + 1, e + D / 2 + Math.floor(i / 2) * D, z0 + sq + 1 + D / 2 + (i % 2) * D);
+      contenu.add(f);
+    }
+    hFeutres = 2 * D;
+  }
+  let hMax = Math.max(hCartes, etat.sabD, hFeutres);
+  if (etat.notice) {
+    const n = maille(new THREE.BoxGeometry(120, 1.2, 120), [uni(0xF3EEDF), uni(0xF3EEDF), mat({ map:tex('notice') }), uni(0xF3EEDF), uni(0xF3EEDF), uni(0xF3EEDF)],
+                     x0 + 60 + (iw - 2 - 120) / 2, e + hMax + 0.6, z0 + 60 + (iw - 2 - 120) / 2);
+    contenu.add(n); hMax += 1.2;
+  }
+  fond.add(contenu);
+
+}
+
+// ---------- animation et vues
+let ouv = 1, ouvC = 1, ret = 0, retC = 0;
+function placer() {
+  const t = ouv;
+  couvercle.position.set(0, couvercle.userData.yFerme + t * 40, -t * 175);
+  couvercle.rotation.x = -t * 1.25;
+  objet.rotation.x = ret * Math.PI;
+  objet.position.y = ret * (FORMATS[etat.format].ih + e + 25);
+  if (contenu) contenu.visible = ret < 0.5;
+}
+function tout() { construireBoite(); construireContenu(); placer(); }
+
+document.querySelectorAll('[data-version]').forEach(b => b.onclick = () => {
+  etat.version = b.dataset.version; document.querySelectorAll('[data-version]').forEach(x => x.classList.toggle('actif', x === b)); construireContenu(); });
+
+document.querySelectorAll('[data-vue]').forEach(b => b.onclick = () => {
+  etat.vue = b.dataset.vue; document.querySelectorAll('[data-vue]').forEach(x => x.classList.toggle('actif', x === b));
+  ouvC = etat.vue === 'ouverte' ? 1 : 0; retC = etat.vue === 'dessous' ? 1 : 0; });
+
+
+
+function redim() { const w = conteneur.clientWidth, h = conteneur.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+window.addEventListener('resize', redim); redim();
+tout();
+(function boucle() {
+  ouv += (ouvC - ouv) * 0.12; ret += (retC - ret) * 0.1;
+  placer(); controls.update(); renderer.render(scene, camera); requestAnimationFrame(boucle);
+})();
+</script>
+</body>
+</html>

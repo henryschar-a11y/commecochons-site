@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>...Comme cochons, la boîte en 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#f3eee2;font-family:'Fredoka',system-ui,sans-serif;color:#3a1f2b}
+  body.embed{background:transparent}
+  #stage{position:fixed;inset:0;touch-action:pan-y}
+  #stage.hot{cursor:pointer}
+  #stage.drag{cursor:grabbing}
+  .hint{position:fixed;left:0;right:0;bottom:22px;text-align:center;font-weight:600;font-size:15px;color:#b64e9b;opacity:.9;transition:opacity .5s;pointer-events:none}
+  .hint.off{opacity:0}
+  body.embed .hint{bottom:8px;font-size:13px}
+  #loader{position:fixed;inset:0;display:grid;place-items:center;font-weight:600;color:#b64e9b;transition:opacity .4s;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="loader">Chargement de la boîte...</div>
+<div class="hint" id="hint">Passe la souris sur la boîte</div>
+
+<script src="assets/three.min.js"></script>
+<script>
+/* =====================================================================
+   ...Comme cochons : étui à pattes 80 x 80 x 150 mm (Packly, version Pratique)
+   Survol : le couvercle s'ouvre, les cartes, le sablier et la règle sortent.
+   Pour l'intégrer sur un site : copier ce fichier + le dossier assets/,
+   puis l'afficher dans une <iframe src="index.html?embed"> (fond transparent).
+   ===================================================================== */
+(function(){
+const ASSETS='assets/';
+const W=80, D=80, H=150, PX=8;
+const COL={purple:'#b64e9b',purpleD:'#8f3779',beige:'#efead4',pinkL:'#ebc1df',dark:'#3a1f2b',white:'#ffffff'};
+const isEmbed=/embed/.test(location.search);
+if(isEmbed)document.body.classList.add('embed');
+const isTouch=matchMedia('(hover: none)').matches;
+const hint=document.getElementById('hint');
+hint.textContent=isTouch?'Touche la boîte pour l\'ouvrir':'Passe la souris sur la boîte';
+
+function loadImg(n){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=ASSETS+n;});}
+const fontsReady=document.fonts?Promise.race([Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('600 40px Fredoka')]),new Promise(r=>setTimeout(r,2500))]):Promise.resolve();
+
+const THEMES=['gouts','famille','anecdotes','quotidien','voyages'];
+Promise.all([loadImg('cover.jpg'),loadImg('rules.jpg'),loadImg('side-tagline.jpg'),loadImg('title.jpg'),loadImg('pigs-strip.jpg'),loadImg('pigs-col.jpg'),
+  Promise.all(THEMES.map(t=>loadImg('carte-'+t+'.jpg'))),Promise.all(THEMES.map(t=>loadImg('dos-'+t+'.jpg'))),fontsReady])
+.then(([cover,rules,tagline,title,strip,col,cartes,dos])=>start({cover,rules,tagline,title,strip,col,cartes,dos}))
+.catch(e=>{document.getElementById('loader').textContent='Impossible de charger les visuels';console.error(e);});
+
+function start(I){
+/* ---------------- faces de l'étui ---------------- */
+function mk(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
+function rr(x,X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();}
+function pill(x,cx,cy,label,bg,fg,size=30){x.font=`600 ${size}px Fredoka`;const w=x.measureText(label).width+size*1.3,h=size*1.75;
+  rr(x,cx-w/2,cy-h/2,w,h,h/2);x.fillStyle=bg;x.fill();x.fillStyle=fg;x.textAlign='center';x.textBaseline='middle';x.fillText(label,cx,cy+2);}
+function fitW(img,w){return [w,img.height*w/img.width];}
+
+function faceFront(){const c=mk(W*PX,H*PX),x=c.getContext('2d');
+  x.fillStyle=COL.purple;x.fillRect(0,0,c.width,c.height);
+  // infos en haut, comme sur la boîte Premium
+  pill(x,180,105,'4 joueurs et +',COL.pinkL,COL.dark);pill(x,470,105,'2 équipes',COL.purpleD,COL.white);
+  pill(x,180,195,'14 ans et +',COL.dark,COL.white);pill(x,470,195,'30 min',COL.pinkL,COL.dark);
+  // couverture
+  x.drawImage(I.cover,0,275,640,640);
+  // version
+  pill(x,320,1010,'VERSION PRATIQUE',COL.white,COL.purple,42);
+  x.font='500 27px Fredoka';x.fillStyle=COL.white;x.textAlign='center';x.fillText('60 cartes · 180 questions · 1 sablier',320,1110);
+  return c;}
+function faceBack(){const c=mk(W*PX,H*PX),x=c.getContext('2d');
+  x.fillStyle=COL.beige;x.fillRect(0,0,c.width,c.height);
+  const [sw,sh]=fitW(I.strip,640);x.drawImage(I.strip,0,12,sw,sh);
+  x.drawImage(I.rules,0,160,640,638);
+  x.save();x.translate(640,830+sh);x.rotate(Math.PI);x.drawImage(I.strip,0,0,sw,sh);x.restore();
+  x.font='700 34px Fredoka';x.fillStyle=COL.purple;x.textAlign='center';x.fillText('commecochons.com',320,1110);
+  return c;}
+function faceLeft(){const c=mk(D*PX,H*PX),x=c.getContext('2d');
+  x.fillStyle=COL.purple;x.fillRect(0,0,c.width,c.height);
+  const h=1060,w=I.tagline.width*h/I.tagline.height;x.drawImage(I.tagline,(640-w)/2,(1200-h)/2,w,h);return c;}
+function faceRight(){const c=mk(D*PX,H*PX),x=c.getContext('2d');
+  x.fillStyle=COL.purple;x.fillRect(0,0,c.width,c.height);
+  const L=1040,T=I.title.height*L/I.title.width;x.save();x.translate(320,600);x.rotate(-Math.PI/2);x.drawImage(I.title,-L/2,-T/2,L,T);x.restore();return c;}
+function faceTop(){const c=mk(W*PX,D*PX),x=c.getContext('2d');
+  x.fillStyle=COL.purple;x.fillRect(0,0,c.width,c.height);
+  const [w,h]=fitW(I.title,600);x.drawImage(I.title,20,(640-h)/2,w,h);return c;}
+function faceBottom(){const c=mk(W*PX,D*PX),x=c.getContext('2d');
+  x.fillStyle=COL.beige;x.fillRect(0,0,c.width,c.height);const [w,h]=fitW(I.strip,640);x.drawImage(I.strip,0,(640-h)/2,w,h);return c;}
+function faceFlap(){const c=mk(W*PX,22*PX),x=c.getContext('2d');x.fillStyle=COL.purpleD;x.fillRect(0,0,c.width,c.height);return c;}
+function cardFront(){const c=mk(512,512),x=c.getContext('2d');x.drawImage(I.cover,0,0,512,512);return c;}
+function cardBack(){const c=mk(512,512),x=c.getContext('2d');x.fillStyle=COL.purple;x.fillRect(0,0,512,512);
+  x.strokeStyle='rgba(255,255,255,.55)';x.lineWidth=10;rr(x,24,24,464,464,36);x.stroke();
+  const [w,h]=fitW(I.title,440);x.drawImage(I.title,36,256-h/2,w,h);return c;}
+function ruleFront(){const c=mk(640,640),x=c.getContext('2d');x.drawImage(I.rules,0,0,640,640);return c;}
+
+/* ---------------- scène ---------------- */
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(30,1,1,5000);
+scene.add(new THREE.HemisphereLight(0xffffff,0xeee4d6,0.62));
+const key=new THREE.DirectionalLight(0xffffff,0.5);key.position.set(180,420,320);key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-300,right:300,top:300,bottom:-300,near:10,far:1600});scene.add(key);
+const fill=new THREE.DirectionalLight(0xfff0f6,0.2);fill.position.set(-300,100,200);scene.add(fill);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(3000,3000),new THREE.ShadowMaterial({opacity:0.12}));
+ground.rotation.x=-Math.PI/2;ground.position.y=-H/2-0.3;ground.receiveShadow=true;scene.add(ground);
+
+const aniso=renderer.capabilities.getMaxAnisotropy();
+function tex(cv){const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=aniso;return t;}
+function mat(cv,o={}){return new THREE.MeshStandardMaterial(Object.assign({map:tex(cv),roughness:0.7,metalness:0},o));}
+const inner=new THREE.MeshStandardMaterial({color:0xf6f3ee,roughness:0.9,side:THREE.BackSide});
+
+const box=new THREE.Group();scene.add(box);
+function panel(w,h,cv,pos,rot,parent=box){const g=new THREE.PlaneGeometry(w,h);
+  const m=new THREE.Mesh(g,mat(cv));m.position.copy(pos);m.rotation.set(...rot);m.castShadow=true;m.receiveShadow=true;
+  m.add(new THREE.Mesh(g,inner));parent.add(m);return m;}
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+panel(W,H,faceFront(),V(0,0,D/2),[0,0,0]);
+panel(W,H,faceBack(),V(0,0,-D/2),[0,Math.PI,0]);
+panel(D,H,faceLeft(),V(-W/2,0,0),[0,-Math.PI/2,0]);
+panel(D,H,faceRight(),V(W/2,0,0),[0,Math.PI/2,0]);
+panel(W,D,faceBottom(),V(0,-H/2,0),[Math.PI/2,0,0]);
+// couvercle articulé à l'arrière + patte rentrante
+const lid=new THREE.Group();lid.position.set(0,H/2,-D/2);box.add(lid);
+panel(W,D,faceTop(),V(0,0.2,D/2),[-Math.PI/2,0,0],lid);
+const flap=new THREE.Group();flap.position.set(0,0.2,D-0.7);lid.add(flap);
+panel(W-1,20,faceFlap(),V(0,-10,0),[0,0,0],flap);
+
+/* ---------------- contenu ---------------- */
+const items=[];
+function item(obj,start,startRot,end,endRot,t0,t1,lift){obj.position.copy(start);obj.rotation.set(...startRot);box.add(obj);
+  items.push({obj,start,end,sr:new THREE.Euler(...startRot),er:new THREE.Euler(...endRot),t0,t1,lift});}
+// cartes : 7 cartes, sortent en éventail au-dessus de la boîte
+const CS=72,cardGeo=new THREE.BoxGeometry(CS,CS,0.5);
+const edge=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.8});
+const cardMats=I.cartes.map((img,k)=>{const f=mk(512,512);f.getContext('2d').drawImage(img,0,0,512,512);
+  const d=mk(512,512);d.getContext('2d').drawImage(I.dos[k],0,0,512,512);return [mat(f),mat(d)];});
+const N=7;
+for(let i=0;i<N;i++){
+  const [cf,cb]=cardMats[i%cardMats.length];const m=new THREE.Mesh(cardGeo,[edge,edge,edge,edge,cf,cb]);m.castShadow=true;
+  const a=(i-(N-1)/2)*0.17;
+  item(m,V(0,-2,-6+i*1.6),[0,0,0],
+       V(Math.sin(a)*95,112+Math.cos(a)*30-30,24+i*0.9),[-0.08,0,-a*1.05],
+       0.16+i*0.035,0.62+i*0.035,H/2+CS/2+12);
+}
+// règle du jeu : feuillet pliée en carré
+const rule=new THREE.Mesh(new THREE.BoxGeometry(70,70,0.8),[edge,edge,edge,edge,mat(ruleFront()),new THREE.MeshStandardMaterial({color:0xefead4,roughness:.9})]);
+rule.castShadow=true;
+item(rule,V(0,-36,-34),[0,0,0],V(-112,-75+34,30),[-0.16,0.42,0.02],0.34,0.86,H/2+50);
+// sablier 1 minute
+const glassMat=new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:0.05,transmission:0,transparent:true,opacity:0.32,metalness:0});
+const wood=new THREE.MeshStandardMaterial({color:0xc58b52,roughness:0.6});
+const sand=new THREE.MeshStandardMaterial({color:0xe8b8d8,roughness:0.9});
+const sab=new THREE.Group();
+const pts=[];for(let i=0;i<=24;i++){const y=-20+i*40/24;const r=1.4+10*Math.pow(Math.abs(y)/20,0.9);pts.push(new THREE.Vector2(r,y));}
+sab.add(new THREE.Mesh(new THREE.LatheGeometry(pts,28),glassMat));
+for(const s of[-1,1]){const d=new THREE.Mesh(new THREE.CylinderGeometry(14,14,3.5,32),wood);d.position.y=s*22;d.castShadow=true;sab.add(d);}
+for(let k=0;k<3;k++){const p=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,41,10),wood);const a=k*2.094;p.position.set(Math.cos(a)*12,0,Math.sin(a)*12);p.castShadow=true;sab.add(p);}
+const sB=new THREE.Mesh(new THREE.ConeGeometry(9,9,24),sand);sB.position.y=-15;sab.add(sB);
+const sT=new THREE.Mesh(new THREE.ConeGeometry(7.5,8,24),sand);sT.rotation.x=Math.PI;sT.position.y=8;sab.add(sT);
+item(sab,V(0,-H/2+24,22),[0,0,0],V(108,-H/2+24,40),[0,0.4,0],0.42,0.98,H/2+60);
+
+/* invisible : zones de survol */
+const hitClosed=new THREE.Mesh(new THREE.BoxGeometry(W+30,H+30,D+30),new THREE.MeshBasicMaterial({visible:false}));box.add(hitClosed);
+const hitOpen=new THREE.Mesh(new THREE.BoxGeometry(300,290,150),new THREE.MeshBasicMaterial({visible:false}));hitOpen.position.set(0,40,20);box.add(hitOpen);
+
+/* ---------------- interactions ---------------- */
+let want=0,prog=0,hovered=false,closeTimer=null,ptr=null,dragged=false,offY=0,tOffY=0,last=null;
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+function hitTest(e){const r=renderer.domElement.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  ray.setFromCamera(ndc,cam);return ray.intersectObject(hitClosed).length>0||(prog>0.25&&ray.intersectObject(hitOpen).length>0);}
+function setHover(v){if(v){clearTimeout(closeTimer);if(!hovered){hovered=true;want=1;}}
+  else if(hovered){clearTimeout(closeTimer);closeTimer=setTimeout(()=>{hovered=false;want=0;},350);}}
+stage.addEventListener('pointermove',e=>{
+  if(e.pointerType==='mouse'){const h=hitTest(e);stage.classList.toggle('hot',h);if(!ptr)setHover(h);}
+  if(ptr){const dx=e.clientX-ptr.x;if(Math.abs(dx)>4)dragged=true;if(dragged){stage.classList.add('drag');tOffY+= (e.clientX-last)*0.008;}last=e.clientX;}
+});
+stage.addEventListener('pointerdown',e=>{ptr={x:e.clientX};last=e.clientX;dragged=false;});
+addEventListener('pointerup',e=>{if(ptr&&!dragged&&e.pointerType!=='mouse'){ if(hitTest(e)||want){want=want?0:1;hovered=!!want;} }
+  ptr=null;stage.classList.remove('drag');});
+stage.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'){stage.classList.remove('hot');setHover(false);}});
+
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix();}
+addEventListener('resize',resize);resize();
+
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const tmp=V(0,0,0),q1=new THREE.Quaternion(),q2=new THREE.Quaternion();
+function bez(a,b,c,d,t,out){const u=1-t;out.set(0,0,0).addScaledVector(a,u*u*u).addScaledVector(b,3*u*u*t).addScaledVector(c,3*u*t*t).addScaledVector(d,t*t*t);return out;}
+const tanHalf=Math.tan(THREE.MathUtils.degToRad(15));
+let t0=performance.now();
+function loop(now){
+  const dt=Math.min(50,now-t0);t0=now;
+  // progression : ouverture plus rapide que fermeture
+  prog+=(want?1:-1)*dt/(want?1700:1300);prog=clamp(prog);
+  // couvercle
+  const lp=want?ease(clamp(prog/0.28)):ease(clamp((prog-0.0)/0.3));
+  const lidP=want?lp:ease(clamp(prog/0.32));
+  lid.rotation.x=-1.95*lidP;flap.rotation.x=1.3*lidP;
+  // contenu
+  for(const it of items){
+    const t=ease(clamp((prog-it.t0)/(it.t1-it.t0)));
+    const top=V(it.start.x,it.lift,it.start.z),top2=V(it.end.x,Math.max(it.lift,it.end.y+60),it.end.z);
+    bez(it.start,top,top2,it.end,t,it.obj.position);
+    q1.setFromEuler(it.sr);q2.setFromEuler(it.er);it.obj.quaternion.copy(q1).slerp(q2,clamp((t-0.25)/0.75));
+    it.obj.visible=prog>it.t0-0.01||t>0; // reste caché dans la boîte fermée
+  }
+  // rotation : léger balancement, se tourne de face à l'ouverture
+  offY+=(tOffY-offY)*0.1;
+  const sway=Math.sin(now/2200)*0.32*(1-ease(prog));
+  box.rotation.y=-0.45+0.3*ease(prog)+sway+offY;
+  // cadrage : la caméra recule quand le contenu sort
+  const e=ease(prog),needH=THREE.MathUtils.lerp(200,300,e),needW=THREE.MathUtils.lerp(150,340,e);
+  const dist=Math.max(needH/2/tanHalf,needW/2/(tanHalf*cam.aspect))*1.12;
+  const ty=THREE.MathUtils.lerp(0,42,e);
+  cam.position.set(0,ty+dist*0.26,dist);cam.lookAt(0,ty,0);
+  renderer.render(scene,cam);
+  requestAnimationFrame(loop);
+}
+document.getElementById('loader').style.opacity=0;
+requestAnimationFrame(loop);
+let hinted=false;const hideHint=()=>{if(!hinted){hinted=true;setTimeout(()=>hint.classList.add('off'),2500);}};
+stage.addEventListener('pointermove',e=>{if(want)hideHint();});
+stage.addEventListener('pointerup',()=>{if(want)hideHint();});
+}
+})();
+</script>
+</body>
+</html>
