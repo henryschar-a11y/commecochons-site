@@ -10,5 +10,6 @@ Toujours publier depuis une copie à jour du dépôt, sinon on écrase le site e
 
 ## Repères
 - Compteur de précommandes : index.html, `const NB_PRECOMMANDES` et `const EDITION = 100`.
-- Prix affiché : 24,99 €, livraison offerte. Lien Stripe : https://buy.stripe.com/cNi7sDaqrd3F0H04EY53O02
+- Prix affiché : 24,99 €, livraison offerte. Lien Stripe : https://buy.stripe.com/cNibJ1gidbhCeClblF8og00
+- Compte Stripe dédié « Comme cochons » (acct_1UciN3EGDtJVdp7w, créé le 17/11/2026), distinct du compte « Henry Schaer » utilisé pour le freelance. Les produits et liens de paiement du jeu se gèrent dans ce compte.
 - Ne jamais utiliser le caractère « — » dans les textes.
