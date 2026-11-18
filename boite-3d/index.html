@@ -45,9 +45,9 @@ function loadImg(n){return new Promise((res,rej)=>{const i=new Image();i.onload=
 const fontsReady=document.fonts?Promise.race([Promise.all([document.fonts.load('700 40px Fredoka'),document.fonts.load('600 40px Fredoka')]),new Promise(r=>setTimeout(r,2500))]):Promise.resolve();
 
 const THEMES=['gouts','famille','anecdotes','quotidien','voyages'];
-Promise.all([loadImg('cover.jpg'),loadImg('rules.jpg'),loadImg('side-tagline.jpg'),loadImg('title.jpg'),loadImg('pigs-strip.jpg'),loadImg('pigs-col.jpg'),
+Promise.all([loadImg('cover.jpg'),loadImg('fond-papier.jpg'),loadImg('rules.jpg'),loadImg('side-tagline.jpg'),loadImg('title.jpg'),loadImg('pigs-strip.jpg'),loadImg('pigs-col.jpg'),
   Promise.all(THEMES.map(t=>loadImg('carte-'+t+'.jpg'))),Promise.all(THEMES.map(t=>loadImg('dos-'+t+'.jpg'))),fontsReady])
-.then(([cover,rules,tagline,title,strip,col,cartes,dos])=>start({cover,rules,tagline,title,strip,col,cartes,dos}))
+.then(([cover,fond,rules,tagline,title,strip,col,cartes,dos])=>start({cover,fond,rules,tagline,title,strip,col,cartes,dos}))
 .catch(e=>{document.getElementById('loader').textContent='Impossible de charger les visuels';console.error(e);});
 
 function start(I){
@@ -58,23 +58,44 @@ function pill(x,cx,cy,label,bg,fg,size=30){x.font=`600 ${size}px Fredoka`;const 
   rr(x,cx-w/2,cy-h/2,w,h,h/2);x.fillStyle=bg;x.fill();x.fillStyle=fg;x.textAlign='center';x.textBaseline='middle';x.fillText(label,cx,cy+2);}
 function fitW(img,w){return [w,img.height*w/img.width];}
 
-function faceFront(){const c=mk(W*PX,H*PX),x=c.getContext('2d');
-  x.fillStyle=COL.purple;x.fillRect(0,0,c.width,c.height);
-  // infos en haut, comme sur la boîte Premium
-  pill(x,180,105,'4 joueurs et +',COL.pinkL,COL.dark);pill(x,470,105,'2 équipes',COL.purpleD,COL.white);
-  pill(x,180,195,'14 ans et +',COL.dark,COL.white);pill(x,470,195,'30 min',COL.pinkL,COL.dark);
-  // couverture
-  x.drawImage(I.cover,0,275,640,640);
-  // version
-  pill(x,320,1010,'VERSION PRATIQUE',COL.white,COL.purple,42);
-  x.font='500 27px Fredoka';x.fillStyle=COL.white;x.textAlign='center';x.fillText('60 cartes · 180 questions · 1 sablier',320,1110);
+// bandeau de « boue » violette au bord ondulé, avec coulures (dir 1 : vers le bas, -1 : vers le haut)
+function mud(x,y0,w,dir,color,drips){x.fillStyle=color;x.beginPath();
+  if(dir>0)x.rect(0,0,w,y0);else x.rect(0,y0,w,1400);x.fill();
+  const R=[26,20,30,22,27,19,24,29,21,25,23];
+  for(let i=0,px=0;px<w+40;i++,px+=38){x.beginPath();x.arc(px,y0,R[i%R.length],0,Math.PI*2);x.fill();}
+  for(const [cx,len,rw] of drips){x.beginPath();x.rect(cx-rw,dir>0?y0:y0-len,rw*2,len);x.fill();
+    x.beginPath();x.arc(cx,y0+dir*len,rw,0,Math.PI*2);x.fill();}}
+// image d'origine posée au centre, bords fondus dans le papier (évite l'effet « carré collé »)
+function fondu(x,img,sh,y,top=110,bot=70,side=50){const S=1.5,cv=mk(640*S,636*S),cx=cv.getContext('2d');cx.scale(S,S);
+  cx.drawImage(img,0,0,img.width,sh,0,0,640,636);cx.globalCompositeOperation='destination-out';
+  const fade=(x0,y0,x1,y1)=>{const g=cx.createLinearGradient(x0,y0,x1,y1);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');cx.fillStyle=g;cx.fillRect(0,0,640,636);};
+  fade(0,0,0,top);fade(0,636,0,636-bot);fade(0,0,side,0);fade(640,0,640-side,0);x.drawImage(cv,0,y,640,636);}
+function faceFront(){const S=1.5,c=mk(W*PX*S,H*PX*S),x=c.getContext('2d'),w=W*PX,h=H*PX;x.scale(S,S);
+  x.drawImage(I.fond,0,0,w,h); // fond tiré du papier de la couverture
+  // couverture d'origine
+  fondu(x,I.cover,1012,280,110,56,50);
+  // bandeau du haut qui coule
+  mud(x,150,w,1,COL.purple,[[70,46,20],[210,22,13],[395,62,17],[560,34,15]]);
+  x.font='700 29px Fredoka';x.fillStyle=COL.white;x.textAlign='center';x.textBaseline='middle';
+  x.fillText('LE JEU QUI TESTE VOS AMITIÉS',w/2,48);
+  pill(x,170,108,'4 joueurs et +',COL.pinkL,COL.dark,24);pill(x,322,108,'14 ans +',COL.dark,COL.white,24);pill(x,470,108,'30 min',COL.pinkL,COL.dark,24);
+  // bandeau du bas
+  mud(x,1048,w,-1,COL.purple,[[95,30,16],[300,18,12],[470,42,18],[600,22,12]]);
+  pill(x,w/2,1100,'VERSION PRATIQUE',COL.white,COL.purple,36);
+  x.font='600 25px Fredoka';x.fillStyle=COL.white;x.textAlign='center';x.textBaseline='middle';
+  x.fillText('60 cartes · 180 questions · 1 sablier',w/2,1162);
   return c;}
-function faceBack(){const c=mk(W*PX,H*PX),x=c.getContext('2d');
-  x.fillStyle=COL.beige;x.fillRect(0,0,c.width,c.height);
-  const [sw,sh]=fitW(I.strip,640);x.drawImage(I.strip,0,12,sw,sh);
-  x.drawImage(I.rules,0,160,640,638);
-  x.save();x.translate(640,830+sh);x.rotate(Math.PI);x.drawImage(I.strip,0,0,sw,sh);x.restore();
-  x.font='700 34px Fredoka';x.fillStyle=COL.purple;x.textAlign='center';x.fillText('commecochons.com',320,1110);
+function faceBack(){const S=1.5,c=mk(W*PX*S,H*PX*S),x=c.getContext('2d'),w=W*PX,h=H*PX;x.scale(S,S);
+  x.drawImage(I.fond,0,0,w,h);
+  // règles d'origine au centre
+  fondu(x,I.rules,I.rules.height,236,70,90,40);
+  // bandeau du haut
+  mud(x,150,w,1,COL.purple,[[95,40,17],[255,20,12],[430,56,18],[585,28,13]]);
+  x.font='700 46px Fredoka';x.fillStyle=COL.white;x.textAlign='center';x.textBaseline='middle';
+  x.fillText('COMMENT ON JOUE\u202F?',w/2,70);
+  // bandeau du bas
+  mud(x,1048,w,-1,COL.purple,[[60,26,14],[235,40,17],[415,18,12],[575,34,16]]);
+  pill(x,w/2,1110,'commecochons.com',COL.white,COL.purple,34);
   return c;}
 function faceLeft(){const c=mk(D*PX,H*PX),x=c.getContext('2d');
   x.fillStyle=COL.purple;x.fillRect(0,0,c.width,c.height);
