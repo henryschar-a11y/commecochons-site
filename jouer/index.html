@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jouer gratuitement | ...Comme cochons</title>
+<meta name="description" content="Jouez gratuitement à ...Comme cochons avec un seul téléphone : au moins deux équipes, une cible qui répond en secret, 1 minute pour deviner.">
+<meta property="og:title" content="...Comme cochons : joue gratuitement avec tes amis">
+<meta property="og:description" content="Un téléphone, deux équipes, 1 minute pour deviner. Tes proches te connaissent-ils vraiment ?">
+<meta property="og:image" content="https://commecochons.com/img/couverture.png">
+<meta property="og:url" content="https://commecochons.com/jouer/">
+<meta name="theme-color" content="#BF6B9D">
+<link rel="icon" type="image/png" href="/img/favicon-64.png">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<link rel="preload" href="fonts/gluten-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  @font-face{font-family:"Gluten";font-style:normal;font-weight:600;font-display:swap;src:url("fonts/gluten-latin-600-normal.woff2") format("woff2")}
+  @font-face{font-family:"Gluten";font-style:normal;font-weight:700;font-display:swap;src:url("fonts/gluten-latin-700-normal.woff2") format("woff2")}
+  @font-face{font-family:"League Spartan";font-style:normal;font-weight:500;font-display:swap;src:url("fonts/league-spartan-latin-500-normal.woff2") format("woff2")}
+  @font-face{font-family:"League Spartan";font-style:normal;font-weight:700;font-display:swap;src:url("fonts/league-spartan-latin-700-normal.woff2") format("woff2")}
+  @font-face{font-family:"League Spartan";font-style:normal;font-weight:800;font-display:swap;src:url("fonts/league-spartan-latin-800-normal.woff2") format("woff2")}
+  :root{
+    --rose:#BF6B9D; --rose-fonce:#A0567F; --rose-clair:#EBCFE0;
+    --brun:#634346; --brun-texte:#4E3335; --sable:#B79D6A; --bleu:#4D7AB1; --vert:#347C3A; --violet:#5D468A;
+    --papier:#F3ECDA; --blanc:#FFFBF2; --bord:#CDBFA6; --rayon:22px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
+    font-family:"League Spartan",system-ui,sans-serif;font-size:18px;line-height:1.4;color:var(--brun-texte);
+    background:var(--papier) url("img/papier.jpg") center/520px repeat;
+  }
+  h1,h2,h3,.gluten{font-family:"Gluten",cursive;font-weight:700;line-height:1.1;margin:0}
+  p{margin:0}
+  img{display:block;max-width:100%;height:auto}
+  button{font-family:inherit}
+  .app{flex:1;width:100%;max-width:500px;margin:0 auto;padding:10px 18px 26px;display:flex;flex-direction:column}
+  .haut{display:flex;justify-content:space-between;align-items:center;min-height:56px}
+  .haut .logo img{width:58px;height:auto}
+  .quitter{background:none;border:0;color:var(--brun);font-weight:700;font-size:.9rem;text-decoration:underline;cursor:pointer}
+
+  .ecran{display:none;flex:1;flex-direction:column;gap:16px}
+  .ecran.actif{display:flex;animation:entre .3s ease}
+  @keyframes entre{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .pied{margin-top:auto;display:flex;flex-direction:column;gap:12px;padding-top:10px}
+
+  /* Boutons */
+  .btn{display:block;width:100%;text-align:center;text-decoration:none;border:0;cursor:pointer;
+    font:700 1.25rem "Gluten",cursive;color:#fff;background:var(--rose);padding:15px 20px 13px;border-radius:999px;
+    box-shadow:0 5px 0 var(--rose-fonce);transition:transform .08s ease, box-shadow .08s ease}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--rose-fonce)}
+  .btn.brun{background:var(--brun);box-shadow:0 5px 0 #3e2a2c}
+  .btn.blanc{background:var(--blanc);color:var(--rose-fonce);border:2px solid var(--rose);box-shadow:0 5px 0 var(--rose-clair)}
+  .btn.petit{display:inline-block;width:auto;font-size:1rem;padding:9px 16px 8px}
+  .lien{background:none;border:0;color:var(--brun);font-weight:700;text-decoration:underline;cursor:pointer;padding:6px;font-size:1rem;text-align:center}
+
+  .bloc{background:var(--blanc);border:2px solid var(--bord);border-radius:var(--rayon);padding:18px}
+  .bulle{background:var(--rose-clair);color:var(--brun-texte);border-radius:18px;padding:12px 16px;font-weight:700}
+
+  /* Cochons */
+  .cochon{width:120px;height:auto;pointer-events:none;user-select:none}
+  .cochon.bouge{animation:dandine 2.4s ease-in-out infinite}
+  .cochon.saute{animation:saute .7s ease-in-out infinite alternate}
+  @keyframes dandine{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg) translateY(-4px)}}
+  @keyframes saute{from{transform:translateY(0)}to{transform:translateY(-12px)}}
+  @media (prefers-reduced-motion:reduce){.cochon.bouge,.cochon.saute{animation:none}}
+
+  /* Accueil */
+  .accueil-titre{position:relative;text-align:center;padding:6px 0 0}
+  .accueil-titre img.dos{width:min(78vw,300px);margin:0 auto;border-radius:20px;box-shadow:0 14px 30px rgba(78,51,53,.25);transform:rotate(-3deg)}
+  .accueil-titre .c1{position:absolute;left:-6px;bottom:-14px;width:110px}
+  .accueil-titre .c2{position:absolute;right:-4px;top:4px;width:104px}
+  .accroche{text-align:center;font-family:"Gluten",cursive;font-weight:600;font-size:1.35rem;color:var(--brun)}
+  .regles{margin:0;padding:0;list-style:none;counter-reset:r}
+  .regles li{counter-increment:r;position:relative;padding:0 0 10px 40px}
+  .regles li::before{content:counter(r);position:absolute;left:0;top:-2px;width:28px;height:28px;border-radius:50%;
+    background:var(--rose);color:#fff;font:700 1rem "Gluten",cursive;display:flex;align-items:center;justify-content:center}
+  .regles b{color:var(--rose-fonce)}
+
+  /* Réglages */
+  .equipe-ligne{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .pastille{width:20px;height:20px;border-radius:50%;flex:none;border:2px solid #fff;box-shadow:0 0 0 2px var(--bord)}
+  .equipe-ligne input{flex:1;min-width:0;font:600 1.05rem "League Spartan",sans-serif;padding:12px 14px;border-radius:14px;border:2px solid var(--bord);background:#fff;color:var(--brun-texte)}
+  .equipe-ligne button{background:none;border:0;font-size:1.3rem;color:var(--brun);cursor:pointer;padding:4px 8px}
+  .choix{display:flex;gap:10px}
+  .choix label{flex:1;cursor:pointer;position:relative}
+  .choix input{position:absolute;opacity:0}
+  .choix span{display:block;text-align:center;padding:11px 8px 9px;border-radius:14px;border:2px solid var(--bord);background:#fff;font-weight:700;line-height:1.2}
+  .choix small{font-weight:500;font-size:.85rem}
+  .choix input:checked + span{border-color:var(--rose);background:var(--rose-clair);color:var(--brun-texte)}
+  .choix input:focus-visible + span{outline:3px solid var(--bleu)}
+  .themes{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .theme{position:relative;text-align:center;font-size:.72rem;font-weight:700;line-height:1.1}
+  .theme img{border-radius:10px;margin-bottom:4px;box-shadow:0 3px 8px rgba(78,51,53,.18)}
+  .theme.verrou img{filter:grayscale(.65) brightness(.95);opacity:.75}
+  .theme.verrou::after{content:"🔒";position:absolute;top:4px;right:4px;font-size:.9rem}
+  .theme.libre::after{content:"Gratuit";position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--rose);color:#fff;font-size:.65rem;padding:2px 7px;border-radius:99px}
+
+  /* Scores */
+  .scores{display:flex;gap:8px}
+  .score{flex:1;min-width:0;background:var(--blanc);border:2px solid var(--bord);border-radius:16px;padding:6px 6px 5px;text-align:center}
+  .score.joue{border-color:var(--rose);box-shadow:0 0 0 2px var(--rose)}
+  .score b{display:block;font:700 1.7rem "Gluten",cursive;line-height:1.05}
+  .score small{display:block;font-weight:700;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* Carte (recto, comme la vraie) */
+  .carte-zone{perspective:1200px}
+  .carte{position:relative;width:100%;aspect-ratio:1/1;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.3,.7,.3,1)}
+  .carte.retournee{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px;overflow:hidden;box-shadow:0 12px 28px rgba(78,51,53,.22)}
+  .face.dos img{width:100%;height:100%;object-fit:cover}
+  .face.recto{transform:rotateY(180deg);background:var(--papier) url("img/papier.jpg") center/cover;padding:5.5% 6%;display:flex;flex-direction:column;gap:3.2%;border:1px solid var(--bord)}
+  .recto-tete{display:flex;justify-content:space-between;align-items:flex-start}
+  .recto-tete h3{font-size:clamp(1.25rem,6vw,1.65rem);color:var(--brun)}
+  .recto-tete .sous{font-weight:800;font-size:.72rem;color:var(--brun);margin-top:2px}
+  .recto-tete img{width:22%;margin-top:-4%}
+  .ligne-q{flex:1;display:flex;align-items:center;gap:4%;background:rgba(255,251,242,.78);border:1.5px solid var(--bord);border-radius:14px;padding:0 4%;
+    text-align:left;cursor:pointer;color:var(--brun-texte);transition:transform .12s ease, box-shadow .12s ease}
+  .ligne-q:active{transform:scale(.98)}
+  .ligne-q:focus-visible{outline:3px solid var(--rose)}
+  .ligne-q .pts{flex:none;min-width:22%;text-align:center;font-weight:800;font-size:.85rem;border-radius:99px;padding:5px 4px 3px}
+  .p1{background:var(--rose-clair);color:var(--brun-texte)} .p2{background:var(--rose-fonce);color:#fff} .p3{background:var(--brun);color:#fff}
+  .ligne-q .txt{font:600 clamp(.95rem,4.3vw,1.15rem) "Gluten",cursive;line-height:1.15}
+  .ligne-q .credit{display:block;font:700 .62rem "League Spartan",sans-serif;color:var(--rose-fonce);margin-top:2px}
+  .ligne-q.choisie{box-shadow:0 0 0 3px var(--rose);background:#fff}
+  .ligne-q.bloquee{opacity:.35;pointer-events:none}
+
+  /* Grande question */
+  .grande-q{background:var(--blanc);border:2px solid var(--bord);border-radius:var(--rayon);padding:18px 18px 16px}
+  .grande-q .meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .grande-q .meta .pts{font-weight:800;font-size:.85rem;border-radius:99px;padding:5px 12px 3px}
+  .grande-q .meta span:first-child{font-weight:800;font-size:.85rem;color:var(--brun)}
+  .grande-q p{font:600 clamp(1.35rem,6.5vw,1.7rem) "Gluten",cursive;line-height:1.15;color:var(--brun-texte)}
+  textarea{width:100%;min-height:92px;font:600 1.2rem "Gluten",cursive;padding:14px;border-radius:16px;border:2px solid var(--bord);resize:none;color:var(--brun-texte);background:#fff}
+  textarea:focus,input:focus{outline:3px solid var(--rose-clair);border-color:var(--rose)}
+  .avec-cochon{display:flex;align-items:center;gap:12px}
+  .avec-cochon .cochon{width:92px;flex:none}
+
+  /* Sablier */
+  .sablier{align-self:center;position:relative;width:190px;height:190px}
+  .sablier svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .sablier .temps{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 3.6rem "Gluten",cursive;color:var(--brun)}
+  .sablier.fini .temps{color:var(--rose-fonce)}
+  .sablier .cochon{position:absolute;width:86px;right:-58px;bottom:-14px}
+
+  /* Révélation */
+  .reponse-revelee{text-align:center;font:700 2rem "Gluten",cursive;color:var(--brun);background:var(--blanc);border-radius:var(--rayon);padding:22px 16px;border:3px dashed var(--rose)}
+  .verdict{display:flex;gap:12px}
+  .verdict .btn{flex:1}
+  .centre{text-align:center}
+  .finale{background:var(--brun);color:#fff;border-radius:16px;padding:12px 16px;font-weight:700;text-align:center}
+  .bandeau-info{background:var(--blanc);border:2px dashed var(--bord);border-radius:14px;padding:10px 14px;font-size:.95rem;font-weight:600}
+  .equipes-choix{display:flex;flex-direction:column;gap:10px}
+
+  /* Toast points */
+  .toast{position:fixed;left:50%;top:24%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;z-index:9;text-align:center;
+    transition:opacity .25s ease, transform .35s cubic-bezier(.3,1.6,.5,1)}
+  .toast.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  .toast img{width:170px;margin:0 auto}
+  .toast b{display:block;font:800 2.6rem "Gluten",cursive;color:var(--rose-fonce);text-shadow:0 3px 0 #fff}
+
+  /* Fin */
+  .gagnant{text-align:center;position:relative}
+  .gagnant .cochons{display:flex;justify-content:center;align-items:flex-end;gap:4px}
+  .gagnant .cochons img{width:130px}
+  .gagnant h2{font-size:2.2rem;margin-top:6px}
+  .offre{background:var(--blanc);border:3px solid var(--rose);border-radius:var(--rayon);padding:18px;display:flex;flex-direction:column;gap:12px}
+  .offre h3{color:var(--rose-fonce);font-size:1.5rem}
+  .offre .rangee{display:flex;gap:12px;align-items:center}
+  .offre .rangee img{width:84px;border-radius:12px;transform:rotate(-4deg);box-shadow:0 6px 14px rgba(78,51,53,.2)}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="haut">
+    <a class="logo" href="/" aria-label="...Comme cochons, retour au site"><img src="/img/logo-tache-sm.png" alt="...Comme cochons" width="272" height="291"></a>
+    <button class="quitter" id="btn-quitter" hidden>Quitter la partie</button>
+  </div>
+
+  <!-- 1. Accueil -->
+  <section class="ecran actif" id="e-accueil">
+    <div class="accueil-titre">
+      <img class="dos" src="img/couvercle.jpg" alt="Couvercle de la boîte ...Comme cochons : Tes proches te connaissent-ils vraiment ?" width="720" height="720">
+    </div>
+    <p class="accroche">La version gratuite, à jouer avec un seul téléphone</p>
+    <div class="bloc">
+      <h3 style="color:var(--brun);font-size:1.45rem;margin-bottom:12px">Comment on joue&#8239;?</h3>
+      <ol class="regles">
+        <li>Formez <b>au moins 2 équipes</b>. À chaque tour, un joueur devient <b>la cible</b>, chacun son tour.</li>
+        <li>La cible tire une carte, choisit un niveau (1, 2 ou 3 points), lit la question et <b>écrit sa réponse en secret</b>.</li>
+        <li>Son équipe a <b>1 minute</b> pour annoncer une seule réponse.</li>
+        <li>Raté&#8239;? Les adversaires ont une <b>deuxième chance</b> : +1 s'ils trouvent, −1 sinon.</li>
+        <li>La première équipe à <b>20 points</b> doit encore réussir une question de <b>niveau 3</b> pour gagner.</li>
+      </ol>
+    </div>
+    <div class="pied">
+      <button class="btn" id="btn-commencer">Lancer une partie</button>
+      <a class="lien" href="/#offres">Découvrir le jeu en boîte (60 cartes)</a>
+    </div>
+  </section>
+
+  <!-- 2. Réglages -->
+  <section class="ecran" id="e-reglages">
+    <h2 style="color:var(--brun);font-size:1.9rem">Vos équipes</h2>
+    <div id="liste-equipes"></div>
+    <button class="btn blanc petit" id="btn-ajout-equipe" style="align-self:flex-start">+ Ajouter une équipe</button>
+
+    <h3 style="color:var(--brun);font-size:1.25rem">Durée de la partie</h3>
+    <div class="choix" role="radiogroup" aria-label="Durée de la partie">
+      <label><input type="radio" name="objectif" value="10"><span>Partie courte<br><small>10 points</small></span></label>
+      <label><input type="radio" name="objectif" value="20" checked><span>Règle officielle<br><small>20 points</small></span></label>
+    </div>
+
+    <h3 style="color:var(--brun);font-size:1.25rem">La cible écrit sa réponse…</h3>
+    <div class="choix" role="radiogroup" aria-label="Support de réponse">
+      <label><input type="radio" name="support" value="tel" checked><span>Sur le téléphone</span></label>
+      <label><input type="radio" name="support" value="papier"><span>Sur un papier</span></label>
+    </div>
+
+    <h3 style="color:var(--brun);font-size:1.25rem">Thème</h3>
+    <div class="themes">
+      <div class="theme libre"><img src="img/dos/gouts.jpg" alt="" width="560" height="560">Goûts et passions</div>
+      <div class="theme verrou"><img src="img/dos/famille.jpg" alt="" width="560" height="560">Famille et amis</div>
+      <div class="theme verrou"><img src="img/dos/anecdotes.jpg" alt="" width="560" height="560">Anecdotes</div>
+      <div class="theme verrou"><img src="img/dos/quotidien.jpg" alt="" width="560" height="560">Vie quoti&shy;dienne</div>
+      <div class="theme verrou"><img src="img/dos/voyages.jpg" alt="" width="560" height="560">Voyages et vacances</div>
+    </div>
+    <p style="font-size:.92rem">Les 4 autres thèmes (48 cartes) sont dans le jeu en boîte.</p>
+
+    <div class="pied">
+      <button class="btn" id="btn-go">C'est parti&#8239;!</button>
+    </div>
+  </section>
+
+  <!-- 3. Tirage de la carte et choix du niveau -->
+  <section class="ecran" id="e-carte">
+    <div class="scores" id="scores"></div>
+    <h2 id="tour-titre" style="font-size:1.6rem"></h2>
+    <div class="finale" id="bandeau-finale" hidden>Question finale&#8239;! Réussissez le niveau 3 pour gagner la partie.</div>
+    <p class="bulle" id="tour-consigne"></p>
+    <div class="carte-zone">
+      <div class="carte" id="carte" role="button" tabindex="0" aria-label="Retourner la carte">
+        <div class="face dos"><img src="img/dos/gouts.jpg" alt="Dos de carte Goûts et passions" width="560" height="560"></div>
+        <div class="face recto">
+          <div class="recto-tete">
+            <div><h3>Goûts et passions</h3><div class="sous">...Comme cochons</div></div>
+            <img src="img/cochons/musique.png" alt="">
+          </div>
+          <button class="ligne-q" data-niveau="1"><span class="pts p1">1 pt</span><span class="txt"></span></button>
+          <button class="ligne-q" data-niveau="2"><span class="pts p2">2 pts</span><span class="txt"></span></button>
+          <button class="ligne-q" data-niveau="3"><span class="pts p3">3 pts</span><span class="txt"></span></button>
+        </div>
+      </div>
+    </div>
+    <div class="bandeau-info" id="bandeau-epuise" hidden>Vous avez vu les 12 cartes gratuites, on les remélange. Le jeu en boîte en contient 60.</div>
+  </section>
+
+  <!-- 4. Écriture secrète -->
+  <section class="ecran" id="e-question">
+    <div class="avec-cochon">
+      <img class="cochon bouge" src="img/cochons/telephone.png" alt="">
+      <p class="bulle" id="q-consigne" style="flex:1"></p>
+    </div>
+    <div class="grande-q">
+      <div class="meta"><span>Goûts et passions</span><span class="pts" id="q-niveau"></span></div>
+      <p id="q-texte"></p>
+    </div>
+    <div id="zone-ecriture">
+      <label for="reponse" style="font-weight:700;display:block;margin-bottom:6px">Ta réponse, en secret&#8239;:</label>
+      <textarea id="reponse" maxlength="140" placeholder="Écris ta réponse ici…" autocomplete="off"></textarea>
+    </div>
+    <div class="pied">
+      <button class="btn" id="btn-cacher">Cacher ma réponse et lancer le sablier</button>
+    </div>
+  </section>
+
+  <!-- 5. Sablier -->
+  <section class="ecran" id="e-sablier">
+    <div class="scores" id="scores-2"></div>
+    <div class="grande-q">
+      <div class="meta"><span id="s-equipe"></span><span class="pts" id="q-niveau-2"></span></div>
+      <p id="q-texte-2"></p>
+    </div>
+    <div class="sablier" id="sablier">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#E5DBC4" stroke-width="12"/>
+        <circle id="arc" cx="60" cy="60" r="52" fill="none" stroke="#BF6B9D" stroke-width="12" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="0"/>
+      </svg>
+      <div class="temps" id="temps" role="timer" aria-live="off">60</div>
+      <img class="cochon saute" src="img/cochons/basket-3.png" alt="">
+    </div>
+    <p class="centre" id="sablier-consigne" style="font-weight:600">Une seule réponse finale, annoncée par l'équipe.</p>
+    <div class="pied">
+      <button class="btn" id="btn-repondu">L'équipe a répondu</button>
+    </div>
+  </section>
+
+  <!-- 6. Verdict de l'équipe -->
+  <section class="ecran" id="e-verdict">
+    <div class="avec-cochon">
+      <img class="cochon bouge" src="img/cochons/lunettes.png" alt="">
+      <p class="bulle" style="flex:1">Cible, sans rien dévoiler&#8239;: ton équipe a-t-elle trouvé&#8239;?</p>
+    </div>
+    <div class="grande-q"><p id="v-question" style="font-size:1.25rem"></p></div>
+    <div class="pied">
+      <div class="verdict">
+        <button class="btn brun" id="btn-rate">Raté</button>
+        <button class="btn" id="btn-trouve">Trouvé&#8239;!</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Deuxième chance -->
+  <section class="ecran" id="e-chance">
+    <div class="avec-cochon">
+      <img class="cochon bouge" src="img/cochons/ah-bon.png" alt="">
+      <div style="flex:1">
+        <h2 style="font-size:1.7rem;color:var(--rose-fonce)">Deuxième chance&#8239;!</h2>
+        <p style="font-weight:600;margin-top:4px">Une équipe adverse peut tenter sa chance : <b>+1</b> si elle trouve, <b>−1</b> sinon.</p>
+      </div>
+    </div>
+    <div class="equipes-choix" id="chance-equipes"></div>
+    <div class="verdict" id="chance-verdict" hidden>
+      <button class="btn brun" id="btn-chance-rate">Raté (−1)</button>
+      <button class="btn" id="btn-chance-trouve">Trouvé (+1)</button>
+    </div>
+    <div class="pied">
+      <button class="lien" id="btn-chance-passer">Personne ne tente, on révèle</button>
+    </div>
+  </section>
+
+  <!-- 8. Révélation -->
+  <section class="ecran" id="e-revelation">
+    <img class="cochon bouge" src="img/cochons/quoi.png" alt="" style="width:130px;align-self:center">
+    <p class="centre" id="r-question" style="font-weight:600"></p>
+    <div class="reponse-revelee" id="r-reponse"></div>
+    <div class="pied">
+      <button class="btn" id="btn-suivant">Tour suivant</button>
+    </div>
+  </section>
+
+  <!-- 9. Fin -->
+  <section class="ecran" id="e-fin">
+    <div class="gagnant">
+      <div class="cochons">
+        <img class="cochon bouge" src="img/cochons/lunettes.png" alt="">
+        <img class="cochon saute" src="img/cochons/amoureux.png" alt="">
+      </div>
+      <h2 id="f-gagnant"></h2>
+      <p id="f-detail" style="font-weight:600"></p>
+    </div>
+    <div class="scores" id="scores-fin"></div>
+    <div class="offre">
+      <div class="rangee">
+        <img src="img/couvercle.jpg" alt="La boîte ...Comme cochons" width="720" height="720">
+        <div>
+          <h3>Envie de la suite&#8239;?</h3>
+          <p>Le jeu en boîte : <b>60 cartes, 180 questions, 5 thèmes</b> et un vrai sablier. <b>24,99 €</b>, livraison offerte.</p>
+        </div>
+      </div>
+      <a class="btn" href="/#offres" id="cta-boite">Précommander le jeu</a>
+    </div>
+    <div class="pied">
+      <button class="btn blanc" id="btn-rejouer">Rejouer</button>
+      <button class="lien" id="btn-partager">Partager le jeu à des amis</button>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" aria-live="polite"><img id="toast-img" src="img/cochons/amoureux-3.png" alt=""><b id="toast-txt"></b></div>
+
+<script>
+/* ===== Cartes gratuites : « Goûts et passions », reprises du fichier d'impression (12 cartes, niveaux 1, 2, 3) ===== */
+const CARTES = [
+  ["Est-ce que je préfère le café ou le thé le matin ?", "De quel instrument de musique je joue ?", "Quel est le défaut qui m'énerve le plus chez les gens ?"],
+  ["Quel sport est-ce que je pratique en ce moment ?", "Quel est mon genre de musique préféré ?", "Quels objets est-ce que je collectionne ?"],
+  ["Est-ce que je préfère le sucré ou le salé ?", "Quel est mon film préféré ?", "Quelle est ma chanson « plaisir coupable » ?"],
+  ["Est-ce que je préfère soirée pizza ou soirée sushis ?", "Quel est mon livre préféré ?", "Quelle série est-ce que je regarde actuellement ?"],
+  ["Est-ce que je préfère la bière, le vin ou un cocktail ?", "Quelle est ma série préférée ?", "Quelle est ma chanson de karaoké fétiche ?"],
+  ["Team fondue ou raclette ?", "Quel est mon cocktail préféré ?", "Quel film ai-je regardé plus de 10 fois ?"],
+  ["Plutôt chat ou chien ?", "Quelle est la couleur qu'on retrouve le plus dans mon dressing ?", "Quel est le vêtement qui me représente le plus ?"],
+  ["Est-ce que je suis plutôt du matin ou du soir ?", "Quel est mon jeu de société préféré ?", "Quel est mon parfum signature ?"],
+  ["Quelle est ma saison favorite ?", ["Quel est mon sportif préféré ?", "La question de Rémi"], "Quel est le jeu vidéo auquel j'ai le plus joué ?"],
+  ["Quelle est ma couleur préférée ?", ["Dans quelle activité ou quel sport je me considère le(la) meilleur(e) du groupe ?", "La question de Thibault"], "Quelle est l'expression que je répète souvent ?"],
+  ["Team pain au chocolat ou chocolatine ?", "Quelle est ma pâtisserie favorite ?", "Quel superpouvoir est-ce que je rêve d'avoir ?"],
+  ["Est-ce que je préfère les gaufres ou les crêpes ?", "Quel est mon acteur/actrice préféré(e) ?", "Si je devais être un personnage de série, lequel je serais ?"]
+];
+const COULEURS = ["#BF6B9D", "#4D7AB1", "#347C3A", "#B79D6A", "#5D468A", "#634346"];
+const NOMS_DEFAUT = ["Les Cochons roses", "Les Groins bleus", "Les Truffes vertes", "Les Jambons dorés", "Les Porcelets violets", "Les Lardons"];
+const COCHONS_BRAVO = ["amoureux-3", "amoureux-4", "musique-2", "basket-2"];
+const PTS = {1: ["1 pt", "p1"], 2: ["2 pts", "p2"], 3: ["3 pts", "p3"]};
+const DUREE = 60; // secondes, comme le sablier du jeu
+
+const fine = s => s.replace(/\s*([?!])/g, " $1");
+const $ = id => document.getElementById(id);
+const texte = q => Array.isArray(q) ? q[0] : q;
+const credit = q => Array.isArray(q) ? q[1] : "";
+
+/* Statistiques (GoatCounter si installé) */
+function suivre(evenement){
+  try{ if(window.goatcounter && window.goatcounter.count){ window.goatcounter.count({path: "jouer-" + evenement, title: evenement, event: true}); } }catch(e){}
+}
+
+/* ===== État ===== */
+let equipes = [], objectif = 20, support = "tel";
+let tourIdx = 0, niveau = 1, enFinale = false, carteRetournee = false;
+let pioche = [], carteCourante = null, minuteur = null, finSablier = 0, equipeChance = null;
+
+function montrer(id){
+  document.querySelectorAll(".ecran").forEach(e => e.classList.toggle("actif", e.id === id));
+  $("btn-quitter").hidden = ["e-accueil", "e-reglages", "e-fin"].includes(id);
+  window.scrollTo(0, 0);
+}
+function toast(img, txt){
+  $("toast-img").src = "img/cochons/" + img + ".png";
+  $("toast-txt").textContent = txt;
+  $("toast").classList.add("on");
+  clearTimeout(toast.t); toast.t = setTimeout(() => $("toast").classList.remove("on"), 1300);
+}
+
+/* ===== Équipes ===== */
+function dessinerEquipes(){
+  const box = $("liste-equipes"); box.innerHTML = "";
+  equipes.forEach((eq, i) => {
+    const l = document.createElement("div"); l.className = "equipe-ligne";
+    l.innerHTML = `<span class="pastille" style="background:${eq.couleur}"></span><input type="text" maxlength="22" aria-label="Nom de l'équipe ${i + 1}">${equipes.length > 2 ? '<button aria-label="Retirer cette équipe">✕</button>' : ""}`;
+    const inp = l.querySelector("input"); inp.value = eq.nom;
+    inp.addEventListener("input", () => eq.nom = inp.value);
+    const b = l.querySelector("button");
+    if(b) b.addEventListener("click", () => { equipes.splice(i, 1); equipes.forEach((e, k) => e.couleur = COULEURS[k]); dessinerEquipes(); });
+    box.appendChild(l);
+  });
+  $("btn-ajout-equipe").hidden = equipes.length >= 6;
+}
+$("btn-ajout-equipe").addEventListener("click", () => {
+  const i = equipes.length;
+  equipes.push({nom: NOMS_DEFAUT[i], couleur: COULEURS[i], points: 0});
+  dessinerEquipes();
+});
+
+function dessinerScores(cible, surligner = true){
+  const box = $(cible); box.innerHTML = "";
+  equipes.forEach((eq, i) => {
+    const d = document.createElement("div");
+    d.className = "score" + (surligner && i === tourIdx ? " joue" : "");
+    d.innerHTML = `<b style="color:${eq.couleur}">${eq.points}</b><small></small>`;
+    d.querySelector("small").textContent = eq.nom;
+    box.appendChild(d);
+  });
+}
+
+/* ===== Pioche ===== */
+function melanger(a){ for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function piocher(){
+  $("bandeau-epuise").hidden = true;
+  if(pioche.length === 0){
+    pioche = melanger(CARTES.map((_, i) => i));
+    if(carteCourante !== null) $("bandeau-epuise").hidden = false;
+  }
+  carteCourante = pioche.pop();
+}
+
+/* ===== Tour ===== */
+function debutTour(){
+  const eq = equipes[tourIdx];
+  enFinale = eq.points >= objectif;
+  dessinerScores("scores");
+  $("tour-titre").textContent = fine("À vous, " + eq.nom + " !");
+  $("tour-titre").style.color = eq.couleur;
+  $("bandeau-finale").hidden = !enFinale;
+  piocher();
+  const c = CARTES[carteCourante];
+  document.querySelectorAll(".ligne-q").forEach(b => {
+    const n = Number(b.dataset.niveau), q = c[n - 1], t = b.querySelector(".txt");
+    t.textContent = fine(texte(q));
+    if(credit(q)){ const s = document.createElement("span"); s.className = "credit"; s.textContent = credit(q); t.appendChild(s); }
+    b.classList.remove("choisie");
+    b.classList.toggle("bloquee", enFinale && n !== 3);
+  });
+  carteRetournee = false;
+  $("carte").classList.remove("retournee");
+  $("tour-consigne").textContent = fine("Le joueur suivant de votre équipe devient la cible. Cible, touche la carte pour la retourner !");
+  montrer("e-carte");
+}
+function retourner(){
+  if(carteRetournee) return;
+  carteRetournee = true;
+  $("carte").classList.add("retournee");
+  $("tour-consigne").textContent = enFinale
+    ? "Question finale : la cible lit le niveau 3 à voix haute."
+    : "Cible : choisis un niveau et lis la question à voix haute.";
+}
+$("carte").addEventListener("click", e => { if(!carteRetournee){ e.preventDefault(); retourner(); } });
+$("carte").addEventListener("keydown", e => { if((e.key === "Enter" || e.key === " ") && !carteRetournee){ e.preventDefault(); retourner(); } });
+
+document.querySelectorAll(".ligne-q").forEach(b => b.addEventListener("click", e => {
+  if(!carteRetournee) return;
+  e.stopPropagation();
+  niveau = Number(b.dataset.niveau);
+  b.classList.add("choisie");
+  const t = fine(texte(CARTES[carteCourante][niveau - 1]));
+  ["q-texte", "q-texte-2", "v-question", "r-question"].forEach(id => $(id).textContent = t);
+  ["q-niveau", "q-niveau-2"].forEach(id => { $(id).textContent = PTS[niveau][0]; $(id).className = "pts " + PTS[niveau][1]; });
+  $("reponse").value = "";
+  const papier = support === "papier";
+  $("zone-ecriture").hidden = papier;
+  $("q-consigne").textContent = papier
+    ? "Cible : écris ta réponse sur un papier, en secret, et retourne-le."
+    : "Cible : toi seul(e) regardes l'écran. Écris ta réponse en secret.";
+  $("btn-cacher").textContent = papier ? "C'est écrit : lancer le sablier" : "Cacher ma réponse et lancer le sablier";
+  setTimeout(() => { montrer("e-question"); if(!papier) setTimeout(() => $("reponse").focus(), 250); }, 280);
+}));
+
+$("btn-cacher").addEventListener("click", () => {
+  if(support === "tel" && !$("reponse").value.trim()){
+    $("reponse").focus(); $("reponse").placeholder = "Écris d'abord ta réponse 🙂"; return;
+  }
+  dessinerScores("scores-2");
+  $("s-equipe").textContent = equipes[tourIdx].nom;
+  $("s-equipe").style.color = equipes[tourIdx].couleur;
+  lancerSablier();
+  montrer("e-sablier");
+});
+
+/* ===== Sablier ===== */
+function bip(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, .25, .5].forEach(t => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = 660; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(.2, ctx.currentTime + t); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + t + .2);
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + .22);
+    });
+  }catch(e){}
+  try{ if(navigator.vibrate) navigator.vibrate([200, 100, 200]); }catch(e){}
+}
+function lancerSablier(){
+  clearInterval(minuteur);
+  finSablier = Date.now() + DUREE * 1000;
+  $("sablier").classList.remove("fini");
+  $("sablier-consigne").textContent = "Une seule réponse finale, annoncée par l'équipe.";
+  const arc = $("arc"), tour = 326.7;
+  const maj = () => {
+    const reste = Math.max(0, finSablier - Date.now());
+    $("temps").textContent = Math.ceil(reste / 1000);
+    arc.style.strokeDashoffset = tour * (1 - reste / (DUREE * 1000));
+    if(reste <= 0){
+      clearInterval(minuteur);
+      $("sablier").classList.add("fini");
+      $("sablier-consigne").textContent = fine("Temps écoulé ! L'équipe annonce sa réponse maintenant.");
+      bip();
+    }
+  };
+  maj(); minuteur = setInterval(maj, 200);
+}
+$("btn-repondu").addEventListener("click", () => { clearInterval(minuteur); montrer("e-verdict"); });
+
+/* ===== Verdict ===== */
+$("btn-trouve").addEventListener("click", () => {
+  const eq = equipes[tourIdx];
+  if(enFinale) return victoire(eq);
+  eq.points += niveau;
+  toast(COCHONS_BRAVO[Math.floor(Math.random() * COCHONS_BRAVO.length)], "+" + niveau);
+  setTimeout(reveler, 1100);
+});
+$("btn-rate").addEventListener("click", () => {
+  equipeChance = null;
+  const box = $("chance-equipes"); box.innerHTML = "";
+  equipes.forEach((eq, i) => {
+    if(i === tourIdx) return;
+    const b = document.createElement("button");
+    b.className = "btn blanc"; b.textContent = eq.nom; b.style.color = eq.couleur; b.style.borderColor = eq.couleur;
+    b.addEventListener("click", () => {
+      equipeChance = i;
+      box.querySelectorAll("button").forEach(x => x.style.opacity = x === b ? "1" : ".4");
+      $("chance-verdict").hidden = false;
+    });
+    box.appendChild(b);
+  });
+  $("chance-verdict").hidden = true;
+  if(equipes.length === 2) box.querySelector("button").click(); // un seul adversaire : présélectionné
+  montrer("e-chance");
+});
+$("btn-chance-trouve").addEventListener("click", () => { if(equipeChance === null) return; equipes[equipeChance].points += 1; toast("amoureux-4", "+1"); setTimeout(reveler, 1100); });
+$("btn-chance-rate").addEventListener("click", () => { if(equipeChance === null) return; equipes[equipeChance].points = Math.max(0, equipes[equipeChance].points - 1); toast("ah-bon", "−1"); setTimeout(reveler, 1100); });
+$("btn-chance-passer").addEventListener("click", reveler);
+
+function reveler(){
+  const r = $("reponse").value.trim();
+  $("r-reponse").textContent = support === "papier" ? fine("Cible, montre ton papier !") : r;
+  montrer("e-revelation");
+}
+$("btn-suivant").addEventListener("click", () => { tourIdx = (tourIdx + 1) % equipes.length; debutTour(); });
+
+function victoire(eq){
+  suivre("partie-finie");
+  $("f-gagnant").textContent = fine(eq.nom + " gagne !");
+  $("f-gagnant").style.color = eq.couleur;
+  $("f-detail").textContent = "Question finale réussie avec " + eq.points + " points au compteur.";
+  dessinerScores("scores-fin", false);
+  montrer("e-fin");
+}
+
+/* ===== Navigation ===== */
+$("btn-commencer").addEventListener("click", () => {
+  equipes = [0, 1].map(i => ({nom: NOMS_DEFAUT[i], couleur: COULEURS[i], points: 0}));
+  dessinerEquipes(); montrer("e-reglages");
+});
+$("btn-go").addEventListener("click", () => {
+  equipes.forEach((eq, i) => { eq.nom = eq.nom.trim() || NOMS_DEFAUT[i]; eq.points = 0; });
+  objectif = Number(document.querySelector('input[name="objectif"]:checked').value);
+  support = document.querySelector('input[name="support"]:checked').value;
+  tourIdx = Math.floor(Math.random() * equipes.length);
+  pioche = []; carteCourante = null;
+  suivre("partie-lancee");
+  debutTour();
+});
+$("btn-quitter").addEventListener("click", () => {
+  if(confirm("Quitter la partie en cours ?")){ clearInterval(minuteur); montrer("e-accueil"); }
+});
+$("btn-rejouer").addEventListener("click", () => { equipes.forEach(eq => eq.points = 0); dessinerEquipes(); montrer("e-reglages"); });
+$("btn-partager").addEventListener("click", async () => {
+  const data = {title: "...Comme cochons", text: "On teste si on se connaît vraiment ? Jeu gratuit, un seul téléphone :", url: "https://commecochons.com/jouer/"};
+  suivre("partage");
+  if(navigator.share){ try{ await navigator.share(data); }catch(e){} }
+  else { try{ await navigator.clipboard.writeText(data.url); $("btn-partager").textContent = "Lien copié !"; }catch(e){} }
+});
+$("cta-boite").addEventListener("click", () => suivre("clic-precommande"));
+
+window.addEventListener("beforeunload", e => {
+  const actif = document.querySelector(".ecran.actif");
+  if(actif && !["e-accueil", "e-reglages", "e-fin"].includes(actif.id)){ e.preventDefault(); e.returnValue = ""; }
+});
+</script>
+</body>
+</html>
