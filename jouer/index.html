@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Jouer gratuitement | ...Comme cochons</title>
 <meta name="description" content="Jouez gratuitement à ...Comme cochons avec un seul téléphone : au moins deux équipes, une cible qui répond en secret, 1 minute pour deviner.">
 <meta property="og:title" content="...Comme cochons : joue gratuitement avec tes amis">
@@ -35,7 +35,8 @@
   p{margin:0}
   img{display:block;max-width:100%;height:auto}
   button{font-family:inherit}
-  .app{flex:1;width:100%;max-width:500px;margin:0 auto;padding:10px 18px 26px;display:flex;flex-direction:column}
+  .app{flex:1;width:100%;max-width:500px;margin:0 auto;padding:10px 18px calc(84px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
+  button,a,.carte{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
   .haut{display:flex;justify-content:space-between;align-items:center;min-height:56px}
   .haut .logo img{width:58px;height:auto}
   .quitter{background:none;border:0;color:var(--brun);font-weight:700;font-size:.9rem;text-decoration:underline;cursor:pointer}
@@ -43,7 +44,7 @@
   .ecran{display:none;flex:1;flex-direction:column;gap:16px}
   .ecran.actif{display:flex;animation:entre .3s ease}
   @keyframes entre{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  .pied{margin-top:auto;display:flex;flex-direction:column;gap:12px;padding-top:10px}
+  .pied{display:flex;flex-direction:column;gap:12px;padding-top:6px}
 
   /* Boutons */
   .btn{display:block;width:100%;text-align:center;text-decoration:none;border:0;cursor:pointer;
@@ -93,6 +94,7 @@
   .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .theme{position:relative;text-align:center;font-size:.72rem;font-weight:700;line-height:1.1}
   .theme img{border-radius:12px;box-shadow:0 3px 8px rgba(78,51,53,.18)}
+  .theme.verrou{cursor:pointer}
   .theme.verrou img{filter:grayscale(.35);opacity:.8}
   .theme.verrou::after{content:"🔒";position:absolute;top:6px;right:6px;font-size:1.1rem}
   .theme.libre::after{content:"Gratuit";position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--rose);color:#fff;font-size:.65rem;padding:2px 7px;border-radius:99px}
@@ -132,10 +134,19 @@
   .grande-q .meta .pts{font-weight:800;font-size:.85rem;border-radius:99px;padding:5px 12px 3px}
   .grande-q .meta span:first-child{font-weight:800;font-size:.85rem;color:var(--brun)}
   .grande-q p{font:600 clamp(1.35rem,6.5vw,1.7rem) "Gluten",cursive;line-height:1.15;color:var(--brun-texte)}
-  textarea{width:100%;min-height:92px;font:600 1.2rem "Gluten",cursive;padding:14px;border-radius:16px;border:2px solid var(--bord);resize:none;color:var(--brun-texte);background:#fff}
+  textarea{width:100%;min-height:76px;font:600 1.2rem "Gluten",cursive;scroll-margin:90px 0 120px;padding:14px;border-radius:16px;border:2px solid var(--bord);resize:none;color:var(--brun-texte);background:#fff}
   textarea:focus,input:focus{outline:3px solid var(--rose-clair);border-color:var(--rose)}
   .avec-cochon{display:flex;align-items:center;gap:12px}
   .avec-cochon .cochon{width:92px;flex:none}
+  #e-question{gap:12px}
+  #e-question .avec-cochon .cochon{width:64px}
+  #e-question .bulle{padding:9px 13px;font-size:.95rem}
+  #e-question .grande-q{padding:14px 16px}
+  #e-question .grande-q p{font-size:clamp(1.15rem,5.4vw,1.4rem)}
+  body.clavier .haut,body.clavier #e-question .avec-cochon{display:none}
+  body.clavier .app{padding-top:6px;padding-bottom:12px}
+  body.clavier #e-question .grande-q .meta{margin-bottom:4px}
+  body.clavier #e-question label{display:none}
 
   /* Sablier */
   .sablier{align-self:center;position:relative;width:190px;height:190px}
@@ -154,10 +165,10 @@
   .equipes-choix{display:flex;flex-direction:column;gap:10px}
 
   /* Toast points */
-  .toast{position:fixed;left:50%;top:24%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;z-index:9;text-align:center;
+  .toast{background:rgba(255,251,242,.96);border:2px solid var(--rose-clair);border-radius:26px;padding:10px 22px 12px;box-shadow:0 14px 34px rgba(78,51,53,.25);position:fixed;left:50%;top:24%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;z-index:9;text-align:center;
     transition:opacity .25s ease, transform .35s cubic-bezier(.3,1.6,.5,1)}
   .toast.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
-  .toast img{width:170px;margin:0 auto}
+  .toast img{width:140px;margin:0 auto}
   .toast b{display:block;font:800 2.6rem "Gluten",cursive;color:var(--rose-fonce);text-shadow:0 3px 0 #fff}
 
   /* Fin */
@@ -223,10 +234,10 @@
     <h3 style="color:var(--brun);font-size:1.25rem">Thème</h3>
     <div class="themes">
       <div class="theme libre"><img src="img/dos/gouts.jpg" alt="Goûts et passions (gratuit)" width="560" height="560"></div>
-      <div class="theme verrou"><img src="img/dos/famille.jpg" alt="Famille et amis (dans la boîte)" width="560" height="560"></div>
-      <div class="theme verrou"><img src="img/dos/anecdotes.jpg" alt="Anecdotes (dans la boîte)" width="560" height="560"></div>
-      <div class="theme verrou"><img src="img/dos/quotidien.jpg" alt="Vie quotidienne (dans la boîte)" width="560" height="560"></div>
-      <div class="theme verrou"><img src="img/dos/voyages.jpg" alt="Voyages et vacances (dans la boîte)" width="560" height="560"></div>
+      <div class="theme verrou" data-theme="famille"><img src="img/dos/famille.jpg" alt="Famille et amis (dans la boîte)" width="560" height="560"></div>
+      <div class="theme verrou" data-theme="anecdotes"><img src="img/dos/anecdotes.jpg" alt="Anecdotes (dans la boîte)" width="560" height="560"></div>
+      <div class="theme verrou" data-theme="quotidien"><img src="img/dos/quotidien.jpg" alt="Vie quotidienne (dans la boîte)" width="560" height="560"></div>
+      <div class="theme verrou" data-theme="voyages"><img src="img/dos/voyages.jpg" alt="Voyages et vacances (dans la boîte)" width="560" height="560"></div>
     </div>
     <p style="font-size:.92rem">Les 4 autres thèmes (48 cartes) sont dans le jeu en boîte.</p>
 
@@ -270,11 +281,9 @@
     </div>
     <div id="zone-ecriture">
       <label for="reponse" style="font-weight:700;display:block;margin-bottom:6px">Ta réponse, en secret&#8239;:</label>
-      <textarea id="reponse" maxlength="140" placeholder="Écris ta réponse ici…" autocomplete="off"></textarea>
+      <textarea id="reponse" maxlength="140" rows="2" placeholder="Écris ta réponse ici…" autocomplete="off" autocorrect="off" enterkeyhint="done"></textarea>
     </div>
-    <div class="pied">
-      <button class="btn" id="btn-cacher">Cacher ma réponse et lancer le sablier</button>
-    </div>
+    <button class="btn" id="btn-cacher">Cacher ma réponse et lancer le sablier</button>
   </section>
 
   <!-- 5. Sablier -->
@@ -403,6 +412,7 @@ const credit = q => Array.isArray(q) ? q[1] : "";
 function suivre(evenement){
   try{ if(window.goatcounter && window.goatcounter.count){ window.goatcounter.count({path: "jouer-" + evenement, title: evenement, event: true}); } }catch(e){}
 }
+let tours = 0, debutPartie = 0, finieEnvoyee = false;
 
 /* ===== État ===== */
 let equipes = [], objectif = 20, support = "tel";
@@ -416,7 +426,8 @@ function montrer(id){
 }
 function toast(img, txt){
   $("toast-img").src = "img/cochons/" + img + ".png";
-  $("toast-txt").textContent = txt;
+  $("toast-txt").textContent = fine(txt);
+  $("toast-txt").style.fontSize = txt.length > 4 ? "1.7rem" : "";
   $("toast").classList.add("on");
   clearTimeout(toast.t); toast.t = setTimeout(() => $("toast").classList.remove("on"), 1300);
 }
@@ -458,7 +469,7 @@ function piocher(){
   $("bandeau-epuise").hidden = true;
   if(pioche.length === 0){
     pioche = melanger(CARTES.map((_, i) => i));
-    if(carteCourante !== null) $("bandeau-epuise").hidden = false;
+    if(carteCourante !== null){ $("bandeau-epuise").hidden = false; suivre("cartes-epuisees"); }
   }
   carteCourante = pioche.pop();
 }
@@ -501,6 +512,11 @@ document.querySelectorAll(".ligne-q").forEach(b => b.addEventListener("click", e
   e.stopPropagation();
   niveau = Number(b.dataset.niveau);
   b.classList.add("choisie");
+  tours++;
+  suivre("niveau-" + niveau);
+  if(tours === 1) suivre("tour-1");
+  if(tours === 5) suivre("tour-5");
+  if(tours === 10) suivre("tour-10");
   const t = fine(texte(CARTES[carteCourante][niveau - 1]));
   ["q-texte", "q-texte-2", "v-question", "r-question"].forEach(id => $(id).textContent = t);
   ["q-niveau", "q-niveau-2"].forEach(id => { $(id).textContent = PTS[niveau][0]; $(id).className = "pts " + PTS[niveau][1]; });
@@ -514,10 +530,28 @@ document.querySelectorAll(".ligne-q").forEach(b => b.addEventListener("click", e
   setTimeout(() => { montrer("e-question"); if(!papier) setTimeout(() => $("reponse").focus(), 250); }, 280);
 }));
 
+/* Clavier mobile : on compacte l'écran et on garde la saisie visible */
+const vv = window.visualViewport;
+function majClavier(){
+  const saisie = document.activeElement === $("reponse");
+  const tactile = window.matchMedia("(pointer: coarse)").matches;
+  const ouvert = saisie && (tactile || vv.height < window.innerHeight * 0.78);
+  document.body.classList.toggle("clavier", ouvert);
+  if(ouvert && document.activeElement === $("reponse")){
+    window.scrollTo(0, 0);
+    setTimeout(() => $("btn-cacher").scrollIntoView({block: "nearest"}), 60);
+  }
+}
+if(vv){ vv.addEventListener("resize", majClavier); }
+$("reponse").addEventListener("focus", () => setTimeout(majClavier, 350));
+$("reponse").addEventListener("blur", () => setTimeout(() => document.body.classList.remove("clavier"), 150));
+$("reponse").addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("btn-cacher").click(); } });
+
 $("btn-cacher").addEventListener("click", () => {
   if(support === "tel" && !$("reponse").value.trim()){
     $("reponse").focus(); $("reponse").placeholder = "Écris d'abord ta réponse 🙂"; return;
   }
+  $("reponse").blur(); document.body.classList.remove("clavier");
   dessinerScores("scores-2");
   $("s-equipe").textContent = equipes[tourIdx].nom;
   $("s-equipe").style.color = equipes[tourIdx].couleur;
@@ -568,6 +602,7 @@ $("btn-trouve").addEventListener("click", () => {
   setTimeout(reveler, 1100);
 });
 $("btn-rate").addEventListener("click", () => {
+  suivre("rate");
   equipeChance = null;
   const box = $("chance-equipes"); box.innerHTML = "";
   equipes.forEach((eq, i) => {
@@ -585,8 +620,8 @@ $("btn-rate").addEventListener("click", () => {
   if(equipes.length === 2) box.querySelector("button").click(); // un seul adversaire : présélectionné
   montrer("e-chance");
 });
-$("btn-chance-trouve").addEventListener("click", () => { if(equipeChance === null) return; equipes[equipeChance].points += 1; toast("amoureux-4", "+1"); setTimeout(reveler, 1100); });
-$("btn-chance-rate").addEventListener("click", () => { if(equipeChance === null) return; equipes[equipeChance].points = Math.max(0, equipes[equipeChance].points - 1); toast("ah-bon", "−1"); setTimeout(reveler, 1100); });
+$("btn-chance-trouve").addEventListener("click", () => { if(equipeChance === null) return; suivre("deuxieme-chance"); equipes[equipeChance].points += 1; toast("amoureux-4", "+1"); setTimeout(reveler, 1100); });
+$("btn-chance-rate").addEventListener("click", () => { if(equipeChance === null) return; suivre("deuxieme-chance"); equipes[equipeChance].points = Math.max(0, equipes[equipeChance].points - 1); toast("ah-bon", "−1"); setTimeout(reveler, 1100); });
 $("btn-chance-passer").addEventListener("click", reveler);
 
 function reveler(){
@@ -598,6 +633,9 @@ $("btn-suivant").addEventListener("click", () => { tourIdx = (tourIdx + 1) % equ
 
 function victoire(eq){
   suivre("partie-finie");
+  const minutes = Math.round((Date.now() - debutPartie) / 60000);
+  suivre("duree-" + (minutes < 10 ? "moins-10min" : minutes < 20 ? "10-20min" : minutes < 30 ? "20-30min" : "plus-30min"));
+  finieEnvoyee = true;
   $("f-gagnant").textContent = fine(eq.nom + " gagne !");
   $("f-gagnant").style.color = eq.couleur;
   $("f-detail").textContent = "Question finale réussie avec " + eq.points + " points au compteur.";
@@ -607,6 +645,7 @@ function victoire(eq){
 
 /* ===== Navigation ===== */
 $("btn-commencer").addEventListener("click", () => {
+  suivre("reglages");
   equipes = [0, 1].map(i => ({nom: NOMS_DEFAUT[i], couleur: COULEURS[i], points: 0}));
   dessinerEquipes(); montrer("e-reglages");
 });
@@ -617,12 +656,16 @@ $("btn-go").addEventListener("click", () => {
   tourIdx = Math.floor(Math.random() * equipes.length);
   pioche = []; carteCourante = null;
   suivre("partie-lancee");
+  suivre("equipes-" + equipes.length);
+  suivre("mode-" + (support === "tel" ? "telephone" : "papier"));
+  suivre("objectif-" + objectif);
+  tours = 0; debutPartie = Date.now(); finieEnvoyee = false;
   debutTour();
 });
 $("btn-quitter").addEventListener("click", () => {
-  if(confirm("Quitter la partie en cours ?")){ clearInterval(minuteur); montrer("e-accueil"); }
+  if(confirm("Quitter la partie en cours ?")){ clearInterval(minuteur); suivre("abandon-tour-" + Math.min(tours, 10)); montrer("e-accueil"); }
 });
-$("btn-rejouer").addEventListener("click", () => { equipes.forEach(eq => eq.points = 0); dessinerEquipes(); montrer("e-reglages"); });
+$("btn-rejouer").addEventListener("click", () => { suivre("rejouer"); equipes.forEach(eq => eq.points = 0); dessinerEquipes(); montrer("e-reglages"); });
 $("btn-partager").addEventListener("click", async () => {
   const data = {title: "...Comme cochons", text: "On teste si on se connaît vraiment ? Jeu gratuit, un seul téléphone :", url: "https://commecochons.com/jouer/"};
   suivre("partage");
@@ -630,6 +673,11 @@ $("btn-partager").addEventListener("click", async () => {
   else { try{ await navigator.clipboard.writeText(data.url); $("btn-partager").textContent = "Lien copié !"; }catch(e){} }
 });
 $("cta-boite").addEventListener("click", () => suivre("clic-precommande"));
+/* Thème verrouillé touché : on mesure l'envie et on explique */
+document.querySelectorAll(".theme.verrou").forEach(t => t.addEventListener("click", () => {
+  suivre("theme-verrouille-" + t.dataset.theme);
+  toast("quoi", "Dans la boîte !");
+}));
 
 window.addEventListener("beforeunload", e => {
   const actif = document.querySelector(".ecran.actif");
