@@ -412,7 +412,7 @@ const credit = q => Array.isArray(q) ? q[1] : "";
 function suivre(evenement){
   try{ if(window.goatcounter && window.goatcounter.count){ window.goatcounter.count({path: "jouer-" + evenement, title: evenement, event: true}); } }catch(e){}
 }
-let tours = 0, debutPartie = 0, finieEnvoyee = false;
+let tours = 0, debutPartie = 0, finieEnvoyee = false, qCourante = "";
 
 /* ===== État ===== */
 let equipes = [], objectif = 20, support = "tel";
@@ -514,6 +514,8 @@ document.querySelectorAll(".ligne-q").forEach(b => b.addEventListener("click", e
   b.classList.add("choisie");
   tours++;
   suivre("niveau-" + niveau);
+  qCourante = "q-gouts-" + (carteCourante + 1) + "-" + niveau; // carte (1 à 12) et niveau joués, sans la réponse
+  suivre(qCourante);
   if(tours === 1) suivre("tour-1");
   if(tours === 5) suivre("tour-5");
   if(tours === 10) suivre("tour-10");
@@ -595,6 +597,7 @@ $("btn-repondu").addEventListener("click", () => { clearInterval(minuteur); mont
 
 /* ===== Verdict ===== */
 $("btn-trouve").addEventListener("click", () => {
+  suivre(qCourante + "-trouve");
   const eq = equipes[tourIdx];
   if(enFinale) return victoire(eq);
   eq.points += niveau;
@@ -603,6 +606,7 @@ $("btn-trouve").addEventListener("click", () => {
 });
 $("btn-rate").addEventListener("click", () => {
   suivre("rate");
+  suivre(qCourante + "-rate");
   equipeChance = null;
   const box = $("chance-equipes"); box.innerHTML = "";
   equipes.forEach((eq, i) => {
