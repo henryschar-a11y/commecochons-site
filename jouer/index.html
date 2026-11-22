@@ -90,11 +90,11 @@
   .choix small{font-weight:500;font-size:.85rem}
   .choix input:checked + span{border-color:var(--rose);background:var(--rose-clair);color:var(--brun-texte)}
   .choix input:focus-visible + span{outline:3px solid var(--bleu)}
-  .themes{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .theme{position:relative;text-align:center;font-size:.72rem;font-weight:700;line-height:1.1}
-  .theme img{border-radius:10px;margin-bottom:4px;box-shadow:0 3px 8px rgba(78,51,53,.18)}
-  .theme.verrou img{filter:grayscale(.65) brightness(.95);opacity:.75}
-  .theme.verrou::after{content:"🔒";position:absolute;top:4px;right:4px;font-size:.9rem}
+  .theme img{border-radius:12px;box-shadow:0 3px 8px rgba(78,51,53,.18)}
+  .theme.verrou img{filter:grayscale(.35);opacity:.8}
+  .theme.verrou::after{content:"🔒";position:absolute;top:6px;right:6px;font-size:1.1rem}
   .theme.libre::after{content:"Gratuit";position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--rose);color:#fff;font-size:.65rem;padding:2px 7px;border-radius:99px}
 
   /* Scores */
@@ -221,11 +221,11 @@
 
     <h3 style="color:var(--brun);font-size:1.25rem">Thème</h3>
     <div class="themes">
-      <div class="theme libre"><img src="img/dos/gouts.jpg" alt="" width="560" height="560">Goûts et passions</div>
-      <div class="theme verrou"><img src="img/dos/famille.jpg" alt="" width="560" height="560">Famille et amis</div>
-      <div class="theme verrou"><img src="img/dos/anecdotes.jpg" alt="" width="560" height="560">Anecdotes</div>
-      <div class="theme verrou"><img src="img/dos/quotidien.jpg" alt="" width="560" height="560">Vie quoti&shy;dienne</div>
-      <div class="theme verrou"><img src="img/dos/voyages.jpg" alt="" width="560" height="560">Voyages et vacances</div>
+      <div class="theme libre"><img src="img/dos/gouts.jpg" alt="Goûts et passions (gratuit)" width="560" height="560"></div>
+      <div class="theme verrou"><img src="img/dos/famille.jpg" alt="Famille et amis (dans la boîte)" width="560" height="560"></div>
+      <div class="theme verrou"><img src="img/dos/anecdotes.jpg" alt="Anecdotes (dans la boîte)" width="560" height="560"></div>
+      <div class="theme verrou"><img src="img/dos/quotidien.jpg" alt="Vie quotidienne (dans la boîte)" width="560" height="560"></div>
+      <div class="theme verrou"><img src="img/dos/voyages.jpg" alt="Voyages et vacances (dans la boîte)" width="560" height="560"></div>
     </div>
     <p style="font-size:.92rem">Les 4 autres thèmes (48 cartes) sont dans le jeu en boîte.</p>
 
